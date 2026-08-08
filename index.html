@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#08090A">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Rail — bike computer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root{
+    --ink:#08090A; --graphite:#16181B; --graphite-2:#1F2226;
+    --chalk:#EDEBE6; --steel:#7A828A; --amber:#FFB020; --red:#FF5A47; --green:#4FD1A5;
+    --pad:16px;
+    --display:"Roboto Condensed","Archivo Narrow","Oswald",system-ui,sans-serif;
+    --util:"Roboto","Inter",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
+  body{background:var(--ink);color:var(--chalk);font-family:var(--util);
+    font-variant-numeric:tabular-nums;-webkit-user-select:none;user-select:none}
+  body.day{--ink:#F2F0EA;--graphite:#E2DFD6;--graphite-2:#D0CCC1;--chalk:#0A0B0C;--steel:#565C62}
+  .screen{position:fixed;inset:0;display:none;flex-direction:column;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .screen.on{display:flex}
+
+  .strip{display:flex;align-items:center;gap:8px;padding:9px var(--pad) 0;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel)}
+  .strip .sep{flex:1}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--steel);display:inline-block;margin-right:6px;vertical-align:1px}
+  .dot.good{background:var(--green)} .dot.ok{background:var(--amber)} .dot.bad{background:var(--red)}
+  .chip{border:1px solid var(--graphite-2);border-radius:2px;padding:6px 9px;color:var(--steel);
+    background:none;font:inherit;letter-spacing:.14em;text-transform:uppercase;font-size:11px}
+  .chip.live{color:var(--amber);border-color:var(--amber)}
+
+  .mainrow{flex:1;display:flex;flex-direction:column;min-height:0}
+  .cola{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;padding:0 var(--pad)}
+  .colb{display:flex;flex-direction:column}
+
+  .readout{display:flex;align-items:flex-end;justify-content:center;gap:10px;line-height:.78}
+  #speed{font-family:var(--display);font-weight:700;font-size:clamp(5rem,36vw,15rem);letter-spacing:-.03em}
+  .unit{font-family:var(--display);font-size:clamp(1rem,5vw,2rem);letter-spacing:.1em;
+    text-transform:uppercase;color:var(--steel);padding-bottom:.9em}
+
+  .rail{position:relative;height:30px;margin:16px 2px 0;border-top:1px solid var(--graphite-2)}
+  .ticks{position:absolute;inset:0;display:flex;justify-content:space-between}
+  .ticks i{width:1px;background:var(--graphite-2);height:8px}
+  .ticks i.major{height:14px}
+  #fill{position:absolute;left:0;top:-1px;height:3px;background:var(--amber);width:100%;
+    transform:scaleX(0);transform-origin:left;transition:transform .18s linear}
+  #peak{position:absolute;top:-6px;width:2px;height:13px;background:var(--chalk);left:0;transform:translateX(-1px)}
+  .railtags{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.16em;color:var(--steel);margin:0 2px}
+
+  /* air line — second hero, live jump feedback */
+  .airline{display:flex;align-items:baseline;gap:10px;margin:14px 2px 0;
+    padding-top:12px;border-top:1px solid var(--graphite-2)}
+  .airk{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--steel)}
+  .airv{font-family:var(--display);font-weight:700;font-size:clamp(2rem,13vw,4rem);line-height:.9}
+  .airsub{margin-left:auto;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--steel);text-align:right}
+  .airline.live .airv,.airline.live .airk{color:var(--amber)}
+  body.noair .airline{display:none}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--graphite-2);margin-top:18px}
+  .cell{background:var(--ink);padding:11px var(--pad)}
+  .cell .k{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--steel)}
+  .cell .v{font-family:var(--display);font-size:clamp(1.5rem,8vw,2.4rem);font-weight:600;line-height:1.1;margin-top:2px}
+  .cell.sm .v{font-size:clamp(1.05rem,5vw,1.4rem);font-weight:500}
+  body.focus .stats,body.focus .rail,body.focus .railtags{display:none}
+
+  .controls{display:flex;gap:1px;background:var(--graphite-2);padding-top:1px}
+  .btn{flex:1;min-height:74px;border:0;background:var(--graphite);color:var(--chalk);
+    font-family:var(--display);font-size:19px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+  .btn:active{background:var(--graphite-2)}
+  .btn.primary{background:var(--amber);color:#0A0B0C}
+  .btn.ghost{background:var(--ink);color:var(--steel)}
+  .btn[disabled]{opacity:.35}
+
+  /* glove and bump proofing */
+  #shield{position:fixed;inset:0;z-index:30;display:none;background:transparent}
+  body.locked #shield{display:block}
+  #lockmsg{position:fixed;left:0;right:0;bottom:0;padding:14px;text-align:center;background:var(--graphite);
+    color:var(--steel);font-size:12px;letter-spacing:.18em;text-transform:uppercase;z-index:31;display:none}
+  body.locked #lockmsg{display:block}
+
+  @media (orientation:landscape){
+    .mainrow{flex-direction:row}
+    .cola{flex:1.25;padding:0 var(--pad) 8px}
+    .colb{flex:1;justify-content:flex-end;border-left:1px solid var(--graphite-2)}
+    .stats{margin-top:0}
+    #speed{font-size:min(22vw,30vh)}
+    .airv{font-size:min(9vw,14vh)}
+    .btn{min-height:62px}
+  }
+
+  .head{display:flex;align-items:center;gap:12px;padding:14px var(--pad);border-bottom:1px solid var(--graphite-2)}
+  .head h1{font-family:var(--display);font-size:22px;letter-spacing:.06em;text-transform:uppercase;margin:0;flex:1;font-weight:700}
+  .body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:24px}
+  .card{border-bottom:1px solid var(--graphite-2);padding:14px var(--pad)}
+  .card .top{display:flex;align-items:baseline;gap:8px}
+  .card .name{font-family:var(--display);font-size:18px;font-weight:600;flex:1;letter-spacing:.03em}
+  .card .when{font-size:11px;color:var(--steel);letter-spacing:.1em;text-transform:uppercase}
+  .card .row{display:flex;flex-wrap:wrap;gap:16px;margin-top:8px;font-size:11px;color:var(--steel);
+    letter-spacing:.08em;text-transform:uppercase}
+  .card .row b{display:block;font-family:var(--display);font-size:19px;color:var(--chalk);
+    font-weight:600;letter-spacing:0;text-transform:none}
+  .card .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .jl{margin-top:12px;border-top:1px solid var(--graphite-2)}
+  .jl .j{display:flex;gap:12px;padding:7px 0;font-size:13px;border-bottom:1px solid var(--graphite-2)}
+  .jl .j i{color:var(--steel);width:26px;font-style:normal}
+  .jl .j b{font-family:var(--display);font-size:16px}
+  .jl .j em{color:var(--steel);margin-left:auto;font-style:normal}
+  .empty{padding:48px var(--pad);color:var(--steel);text-align:center;font-size:14px;line-height:1.6}
+  .set{display:flex;align-items:center;gap:14px;padding:15px var(--pad);border-bottom:1px solid var(--graphite-2)}
+  .set .lab{flex:1}
+  .set .lab span{display:block;font-size:12px;color:var(--steel);margin-top:3px;line-height:1.45}
+  .seg{display:flex;border:1px solid var(--graphite-2);flex:none}
+  .seg button{background:none;border:0;color:var(--steel);font:inherit;font-size:13px;
+    padding:9px 12px;letter-spacing:.1em;text-transform:uppercase}
+  .seg button.sel{background:var(--chalk);color:var(--ink)}
+  input[type=text],select{background:var(--graphite);color:var(--chalk);border:1px solid var(--graphite-2);
+    padding:12px;font:inherit;font-size:16px;border-radius:0;width:100%}
+  .sheet{position:fixed;inset:0;background:var(--ink);display:none;flex-direction:column;z-index:20;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+  .sheet.on{display:flex}
+  .sum{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--graphite-2);margin:var(--pad)}
+  .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--graphite-2);
+    color:var(--chalk);padding:11px 16px;font-size:13px;z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+  .toast.on{opacity:1}
+  .warn{margin:10px var(--pad) 0;padding:11px 13px;border-left:2px solid var(--amber);
+    background:var(--graphite);font-size:13px;line-height:1.5;color:var(--chalk)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<!-- ================= RIDE ================= -->
+<section id="s-ride" class="screen on">
+  <div class="strip">
+    <span><i id="gpsdot" class="dot"></i><span id="gpstxt">No fix</span></span>
+    <span class="sep"></span>
+    <button class="chip" id="btn-lock">Lock</button>
+    <button class="chip" id="btn-focus">Focus</button>
+    <button class="chip" id="btn-rides">Rides</button>
+    <button class="chip" id="btn-set">Setup</button>
+  </div>
+
+  <div id="warn" class="warn" hidden></div>
+
+  <div class="mainrow">
+    <div class="cola">
+      <div class="readout"><div id="speed">0.0</div><div class="unit" id="unit">km/h</div></div>
+      <div class="rail">
+        <div class="ticks" id="ticks"></div><div id="fill"></div><div id="peak"></div>
+      </div>
+      <div class="railtags"><span>0</span><span id="railmid">30</span><span id="railmax">60</span></div>
+      <div class="airline" id="airline">
+        <div class="airk" id="airk">Last air</div>
+        <div class="airv" id="airv">—</div>
+        <div class="airsub" id="airsub">0 airs</div>
+      </div>
+    </div>
+    <div class="colb">
+      <div class="stats">
+        <div class="cell"><div class="k">Moving time</div><div class="v" id="time">0:00:00</div></div>
+        <div class="cell"><div class="k" id="lab-dist">Distance</div><div class="v" id="dist">0.00</div></div>
+        <div class="cell sm"><div class="k" id="lab-avg">Average</div><div class="v" id="avg">0.0</div></div>
+        <div class="cell sm"><div class="k" id="lab-max">Peak</div><div class="v" id="max">0.0</div></div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="btn-go">Start ride</button>
+        <button class="btn ghost" id="btn-stop" disabled>Finish</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="shield"></div>
+<div id="lockmsg">Locked — press and hold to unlock</div>
+
+<!-- ================= RIDES ================= -->
+<section id="s-list" class="screen">
+  <div class="head"><h1>Rides</h1><button class="chip" id="btn-back1">Close</button></div>
+  <div class="body" id="ridelist"></div>
+</section>
+
+<!-- ================= SETUP ================= -->
+<section id="s-setup" class="screen">
+  <div class="head"><h1>Setup</h1><button class="chip" id="btn-back2">Close</button></div>
+  <div class="body">
+
+    <div class="set"><div class="lab">Jump detection<span>Reads the accelerometer for freefall. Needs the phone clamped firmly to the bars.</span></div>
+      <div class="seg" id="seg-air"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
+    <div class="set"><div class="lab">Jump sensitivity<span>Start on Med and check the count against what you actually hit. Low catches only clean airs. High catches small doubles but chatter can fool it.</span></div>
+      <div class="seg" id="seg-sens"><button data-v="low">Low</button><button data-v="med">Med</button><button data-v="high">High</button></div></div>
+    <div class="set"><div class="lab">Minimum air<span>Anything shorter is treated as trail chatter, not a jump.</span></div>
+      <select id="sel-minair"><option value="120">0.12 s</option><option value="180">0.18 s</option><option value="250">0.25 s</option><option value="350">0.35 s</option></select></div>
+
+    <div class="set"><div class="lab">Units<span>Speed and distance</span></div>
+      <div class="seg" id="seg-units"><button data-v="metric">km</button><button data-v="imperial">mi</button></div></div>
+    <div class="set"><div class="lab">Keep screen on<span>Holds a wake lock while recording.</span></div>
+      <div class="seg" id="seg-wake"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
+    <div class="set"><div class="lab">Auto-pause<span>Stops the clock below 2 km/h so queueing at the lip doesn't wreck your average.</span></div>
+      <div class="seg" id="seg-auto"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
+    <div class="set"><div class="lab">Refresh rate<span>Fast reads best on a jump run. Eco polls GPS half as often and roughly halves location power draw.</span></div>
+      <div class="seg" id="seg-rate"><button data-v="fast">Fast</button><button data-v="eco">Eco</button></div></div>
+    <div class="set"><div class="lab">Daylight theme<span>Black is dimmer and cheaper on an OLED screen. Switch to light only if you can't read it in direct sun.</span></div>
+      <div class="seg" id="seg-day"><button data-v="0">Dark</button><button data-v="1">Light</button></div></div>
+    <div class="set"><div class="lab">Rail top speed<span>Full scale of the speed bar. Set it just above your usual top speed.</span></div>
+      <select id="sel-scale"><option>30</option><option>40</option><option>50</option><option>60</option><option>80</option><option>100</option></select></div>
+    <div class="set"><div class="lab">Accuracy cutoff<span>Fixes worse than this are ignored for distance.</span></div>
+      <select id="sel-acc"><option value="10">10 m</option><option value="20">20 m</option><option value="30">30 m</option><option value="50">50 m</option></select></div>
+    <div class="set"><div class="lab">Track logging<span>Full keeps every GPS point for GPX export. Stats-only stores just the numbers.</span></div>
+      <div class="seg" id="seg-track"><button data-v="1">Full</button><button data-v="0">Stats only</button></div></div>
+    <div class="set" style="display:block">
+      <div class="lab" style="margin-bottom:12px">Export everything<span>One JSON file with every ride and jump. Keep a copy before you clear the app's data.</span></div>
+      <button class="btn" style="min-height:52px" id="btn-dump">Export all rides</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SAVE SHEET ================= -->
+<section id="sheet-save" class="sheet">
+  <div class="head"><h1>Ride done</h1></div>
+  <div class="body">
+    <div class="sum" id="save-sum"></div>
+    <div style="padding:0 16px"><input type="text" id="ride-name" placeholder="Name this ride" autocomplete="off"></div>
+  </div>
+  <div class="controls">
+    <button class="btn primary" id="btn-save">Save ride</button>
+    <button class="btn ghost" id="btn-discard">Discard</button>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------------- storage: works in the Claude preview and when self-hosted ---------------- */
+var S = {
+  async get(k){
+    try{
+      if(window.storage){ var r = await window.storage.get(k,false); return r?JSON.parse(r.value):null; }
+      var v = localStorage.getItem(k); return v?JSON.parse(v):null;
+    }catch(e){ return null; }
+  },
+  async set(k,v){
+    try{
+      if(window.storage){ await window.storage.set(k,JSON.stringify(v),false); return true; }
+      localStorage.setItem(k,JSON.stringify(v)); return true;
+    }catch(e){ toast('Storage full — export and clear some rides'); return false; }
+  },
+  async del(k){ try{ if(window.storage){ await window.storage.delete(k,false); return; } localStorage.removeItem(k); }catch(e){} }
+};
+
+var $ = function(id){ return document.getElementById(id); };
+var toastT;
+function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove('on');},2200); }
+function hms(ms){ var s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60); s=s%60;
+  return h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+function haversine(a,b){
+  var R=6371000,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lon-a.lon)*Math.PI/180;
+  var la=a.lat*Math.PI/180,lb=b.lat*Math.PI/180;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(la)*Math.cos(lb)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(x)));
+}
+// only touch the DOM when the value actually changed — every skipped write is a skipped repaint
+function put(el,v){ if(el && el._v!==v){ el._v=v; el.textContent=v; } }
+function esc(s){ return String(s).replace(/[<>&"]/g,function(c){ return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'})[c]; }); }
+
+/* ---------------- settings ---------------- */
+var cfg = { units:'metric', wake:1, auto:1, rate:'fast', day:0, scale:60, acc:20, track:1,
+            air:1, sens:'med', minair:180 };
+var U = { spd:1, spdLab:'km/h', distLab:'km' };
+// freefall threshold in m/s^2 — total acceleration this low means the phone is unloaded
+var SENS = { low:{th:2.6}, med:{th:3.6}, high:{th:4.6} };
+
+function applyUnits(){
+  var imp = cfg.units==='imperial';
+  U.spd = imp?0.621371:1; U.spdLab = imp?'mph':'km/h'; U.distLab = imp?'mi':'km';
+  put($('unit'),U.spdLab);
+  put($('lab-dist'),'Distance ('+U.distLab+')');
+  put($('lab-avg'),'Average ('+U.spdLab+')');
+  put($('lab-max'),'Peak ('+U.spdLab+')');
+}
+function drawRail(){
+  var t=$('ticks');
+  if(t.childElementCount!==21){ t.innerHTML='';
+    for(var i=0;i<=20;i++){ var e=document.createElement('i'); if(i%5===0) e.className='major'; t.appendChild(e); } }
+  put($('railmax'),String(Math.round(cfg.scale*U.spd)));
+  put($('railmid'),String(Math.round(cfg.scale*U.spd/2)));
+}
+function seg(id,key,cast){
+  $(id).addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    cfg[key]=cast?cast(b.dataset.v):b.dataset.v; paintSeg(); saveCfg(); afterCfg();
+  });
+}
+function paintSeg(){
+  [['seg-units','units'],['seg-wake','wake'],['seg-auto','auto'],['seg-rate','rate'],
+   ['seg-day','day'],['seg-track','track'],['seg-air','air'],['seg-sens','sens']]
+  .forEach(function(p){
+    $(p[0]).querySelectorAll('button').forEach(function(b){ b.classList.toggle('sel',String(cfg[p[1]])===b.dataset.v); });
+  });
+  $('sel-scale').value=String(cfg.scale); $('sel-acc').value=String(cfg.acc); $('sel-minair').value=String(cfg.minair);
+}
+function afterCfg(){
+  document.body.classList.toggle('day',!!Number(cfg.day));
+  document.body.classList.toggle('noair',!Number(cfg.air));
+  document.querySelector('meta[name=theme-color]').content = Number(cfg.day)?'#F2F0EA':'#08090A';
+  applyUnits(); drawRail(); render(true);
+  if(ride.status==='running'){
+    startGeo();
+    Number(cfg.wake)?lockScreen():releaseScreen();
+    Number(cfg.air)?startMotion():stopMotion();
+  }
+}
+function saveCfg(){ S.set('rm-cfg',cfg); }
+
+/* ---------------- ride state ---------------- */
+function blank(){ return { status:'idle',started:0,movingMs:0,totalMs:0,lastTick:0,dist:0,max:0,
+  speed:0,still:0,pts:[],jumps:[],bestAir:0,lastAir:0,last:null,fixes:0 }; }
+var ride = blank();
+var geoId=null, tickId=null, wl=null, eco=0, flashT=0;
+
+/* ---------------- GPS ---------------- */
+function startGeo(){
+  if(!navigator.geolocation){ warn('This browser has no GPS access. Use Chrome over https.'); return; }
+  if(geoId!==null) navigator.geolocation.clearWatch(geoId);
+  geoId = navigator.geolocation.watchPosition(onFix,onGeoErr,{
+    enableHighAccuracy:true, maximumAge: cfg.rate==='eco'?2000:1000, timeout:20000 });
+}
+function stopGeo(){ if(geoId!==null){ navigator.geolocation.clearWatch(geoId); geoId=null; } }
+function warn(msg){ var w=$('warn'); if(!msg){ w.hidden=true; return; } w.hidden=false; w.textContent=msg; }
+function onGeoErr(e){
+  if(e.code===1) warn('Location is blocked. Allow location for this site, then tap Start ride again.');
+  else if(e.code===2) warn('No GPS signal yet. Get clear of cover.');
+  else warn('GPS timed out. Still trying…');
+  gps(null);
+}
+function gps(acc){
+  var d=$('gpsdot'),t=$('gpstxt');
+  if(acc===null){ d.className='dot bad'; put(t,'No fix'); return; }
+  d.className='dot '+(acc<=10?'good':acc<=25?'ok':'bad'); put(t,Math.round(acc)+' m');
+}
+function onFix(p){
+  warn(null);
+  var c=p.coords; gps(c.accuracy);
+  if(ride.status!=='running') return;
+  if(cfg.rate==='eco' && (eco++ % 2)) return;         // half the work, half the redraws
+
+  var now=p.timestamp||Date.now(), here={lat:c.latitude,lon:c.longitude,t:now};
+  var usable = c.accuracy!=null && c.accuracy<=cfg.acc;
+  ride.fixes++;
+
+  var v=null;
+  if(c.speed!=null && c.speed>=0 && !isNaN(c.speed)) v=c.speed*3.6;
+  else if(ride.last){ var dt=(now-ride.last.t)/1000; if(dt>0.3) v=haversine(ride.last,here)/dt*3.6; }
+  if(v!=null && v<160){
+    ride.speed = ride.speed ? ride.speed*0.6+v*0.4 : v;   // light smoothing, still responsive
+    if(ride.speed<1.5) ride.speed=0;
+    if(ride.speed>ride.max && usable) ride.max=ride.speed;
+  }
+  if(usable && ride.last){
+    var d=haversine(ride.last,here), dt2=(now-ride.last.t)/1000;
+    if(d>=3 && dt2>0 && d/dt2*3.6<160) ride.dist+=d;
+  }
+  if(usable || !ride.last) ride.last=here;
+  if(Number(cfg.track) && usable)
+    ride.pts.push([+here.lat.toFixed(6),+here.lon.toFixed(6),Math.round(now/1000),Math.round(ride.speed*10)/10]);
+
+  ride.still = (Number(cfg.auto) && ride.speed<2) ? ride.still+1 : 0;
+  render();
+}
+
+/* ---------------- airtime ----------------
+   A bar-mounted phone reads about 9.8 m/s2 at rest. Wheels-off means the frame stops
+   pushing back and total acceleration collapses toward zero. Hysteresis on the exit
+   threshold stops trail chatter from strobing the detector on and off. */
+var motionOn=false, air={up:false,start:0,tookOff:0,lastEnd:0};
+function startMotion(){
+  if(motionOn || !Number(cfg.air)) return;
+  window.addEventListener('devicemotion',onMotion,{passive:true});
+  motionOn=true;
+}
+function stopMotion(){
+  if(!motionOn) return;
+  window.removeEventListener('devicemotion',onMotion);
+  motionOn=false; air.up=false;
+}
+function onMotion(e){
+  var a=e.accelerationIncludingGravity;
+  if(!a || a.x==null) return;
+  var m=Math.sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
+  var th=SENS[cfg.sens].th, t=e.timeStamp||performance.now();
+
+  if(!air.up){
+    if(m<th && ride.status==='running'){ air.up=true; air.start=t; air.tookOff=ride.speed; }
+    return;
+  }
+  if(m>th+2.2){                                  // landed, frame loaded again
+    var dur=t-air.start; air.up=false;
+    if(dur>=cfg.minair && dur<=4000 && t-air.lastEnd>350 && ride.status==='running' && air.tookOff>4){
+      air.lastEnd=t; logJump(dur,air.tookOff);
+    }
+    return;
+  }
+  if(t-air.start>5000) air.up=false;              // sensor stalled or phone came loose
+}
+function logJump(dur,spd){
+  var s=+(dur/1000).toFixed(2);
+  ride.jumps.push([Math.round(Date.now()/1000),Math.round(dur),+spd.toFixed(1)]);
+  ride.lastAir=s; if(s>ride.bestAir) ride.bestAir=s;
+  flashT=Date.now()+3000;
+  paintAir();
+}
+function paintAir(){
+  var live=Date.now()<flashT;
+  $('airline').classList.toggle('live',live);
+  put($('airk'), live?'Air':'Last air');
+  put($('airv'), ride.lastAir?ride.lastAir.toFixed(2)+'s':'—');
+  put($('airsub'), ride.jumps.length
+    ? ride.jumps.length+(ride.jumps.length===1?' air':' airs')+' · best '+ride.bestAir.toFixed(2)+'s'
+    : '0 airs');
+}
+
+/* ---------------- clock ---------------- */
+function tick(){
+  var now=Date.now();
+  if(ride.status==='running'){
+    var d=now-ride.lastTick; ride.lastTick=now; ride.totalMs+=d;
+    var stopped=Number(cfg.auto)&&ride.still>=4;
+    if(!stopped) ride.movingMs+=d;
+    if(stopped&&ride.speed) ride.speed=0;
+  }
+  render();
+  if(flashT && now>flashT){ flashT=0; paintAir(); }
+}
+
+function render(force){
+  put($('speed'),(ride.speed*U.spd).toFixed(1));
+  $('fill').style.transform='scaleX('+Math.max(0,Math.min(1,ride.speed/cfg.scale)).toFixed(3)+')';
+  $('peak').style.left=(Math.min(1,ride.max/cfg.scale)*100).toFixed(1)+'%';
+  put($('time'),hms(ride.movingMs));
+  put($('dist'),(ride.dist/1000*U.spd).toFixed(2));
+  var hrs=ride.movingMs/3600000;
+  put($('avg'),(hrs>0?(ride.dist/1000*U.spd)/hrs:0).toFixed(1));
+  put($('max'),(ride.max*U.spd).toFixed(1));
+  var go=$('btn-go');
+  put(go, ride.status==='running'?'Pause':ride.status==='paused'?'Resume':'Start ride');
+  go.classList.toggle('primary',ride.status!=='running');
+  $('btn-stop').disabled = ride.status==='idle';
+  $('btn-focus').classList.toggle('live',ride.status==='running');
+  if(force) paintAir();
+}
+
+/* ---------------- wake lock ---------------- */
+async function lockScreen(){
+  if(!('wakeLock' in navigator)||wl) return;
+  try{ wl=await navigator.wakeLock.request('screen'); wl.addEventListener('release',function(){wl=null;}); }
+  catch(e){ wl=null; }
+}
+function releaseScreen(){ if(wl){ try{wl.release();}catch(e){} wl=null; } }
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible'&&ride.status==='running'&&Number(cfg.wake)) lockScreen();
+});
+
+/* ---------------- controls ---------------- */
+async function askMotion(){
+  // iOS gates the accelerometer behind a gesture prompt, Android Chrome does not
+  if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
+    try{ var r=await DeviceMotionEvent.requestPermission();
+      if(r!=='granted'){ toast('Jump detection needs motion access'); return false; } }
+    catch(e){ return false; }
+  }
+  return true;
+}
+$('btn-go').addEventListener('click',async function(){
+  if(ride.status==='running'){
+    ride.status='paused'; stopGeo(); stopMotion(); releaseScreen();
+    clearInterval(tickId); tickId=null; ride.speed=0; render(); toast('Paused'); return;
+  }
+  if(ride.status==='idle'){ ride=blank(); ride.started=Date.now(); }
+  ride.status='running'; ride.lastTick=Date.now(); ride.last=null; ride.still=0;
+  startGeo();
+  if(Number(cfg.wake)) lockScreen();
+  if(Number(cfg.air) && await askMotion()) startMotion();
+  if(!tickId) tickId=setInterval(tick,1000);
+  render(true); toast('Recording — waiting for GPS');
+});
+
+$('btn-stop').addEventListener('click',function(){
+  ride.status='done'; stopGeo(); stopMotion(); releaseScreen();
+  clearInterval(tickId); tickId=null; ride.speed=0; render();
+  var hrs=ride.movingMs/3600000;
+  $('save-sum').innerHTML=[
+    ['Moving time',hms(ride.movingMs)],
+    ['Distance',(ride.dist/1000*U.spd).toFixed(2)+' '+U.distLab],
+    ['Peak speed',(ride.max*U.spd).toFixed(1)+' '+U.spdLab],
+    ['Average',(hrs>0?(ride.dist/1000*U.spd)/hrs:0).toFixed(1)+' '+U.spdLab],
+    ['Airs',String(ride.jumps.length)],
+    ['Best air',ride.bestAir?ride.bestAir.toFixed(2)+' s':'—']
+  ].map(function(p){ return '<div class="cell"><div class="k">'+p[0]+'</div><div class="v">'+p[1]+'</div></div>'; }).join('');
+  var d=new Date(ride.started);
+  $('ride-name').value=['Dawn','Morning','Afternoon','Evening','Night'][Math.min(4,Math.floor(d.getHours()/5))]+' session';
+  $('sheet-save').classList.add('on');
+});
+$('btn-discard').addEventListener('click',function(){
+  $('sheet-save').classList.remove('on'); ride=blank(); render(true); toast('Discarded');
+});
+$('btn-save').addEventListener('click',async function(){
+  var id='r'+ride.started, hrs=ride.movingMs/3600000;
+  var sum={ id:id, name:($('ride-name').value||'Ride').slice(0,60), started:ride.started,
+    movingMs:ride.movingMs, totalMs:ride.totalMs, distM:Math.round(ride.dist),
+    max:+ride.max.toFixed(1), avg:+(hrs>0?(ride.dist/1000)/hrs:0).toFixed(1),
+    pts:ride.pts.length, airs:ride.jumps.length, bestAir:ride.bestAir };
+  var list=(await S.get('rm-rides'))||[];
+  list.unshift(sum); await S.set('rm-rides',list);
+  if(ride.pts.length) await S.set('rm-trk-'+id,ride.pts);
+  if(ride.jumps.length) await S.set('rm-jmp-'+id,ride.jumps);
+  $('sheet-save').classList.remove('on');
+  ride=blank(); render(true); toast('Saved'); show('s-list'); paintList();
+});
+
+/* ---------------- lock: bumps and gloves ---------------- */
+var holdT=null;
+$('btn-lock').addEventListener('click',function(){
+  document.body.classList.add('locked'); toast('Locked — hold anywhere to unlock');
+});
+$('shield').addEventListener('pointerdown',function(e){
+  e.preventDefault(); clearTimeout(holdT);
+  holdT=setTimeout(function(){ document.body.classList.remove('locked'); toast('Unlocked'); },700);
+},{passive:false});
+['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+  $('shield').addEventListener(ev,function(){ clearTimeout(holdT); });
+});
+
+/* ---------------- navigation ---------------- */
+function show(id){ ['s-ride','s-list','s-setup'].forEach(function(s){ $(s).classList.toggle('on',s===id); }); }
+$('btn-rides').addEventListener('click',function(){ show('s-list'); paintList(); });
+$('btn-set').addEventListener('click',function(){ show('s-setup'); });
+$('btn-back1').addEventListener('click',function(){ show('s-ride'); });
+$('btn-back2').addEventListener('click',function(){ show('s-ride'); });
+$('btn-focus').addEventListener('click',function(){ document.body.classList.toggle('focus'); });
+
+/* ---------------- ride list ---------------- */
+async function paintList(){
+  var list=(await S.get('rm-rides'))||[], box=$('ridelist');
+  if(!list.length){ box.innerHTML='<div class="empty">No rides yet.<br>Tap Start ride, roll out, and it shows up here.</div>'; return; }
+  var k = cfg.units==='imperial'?0.621371:1;
+  box.innerHTML=list.map(function(r){
+    var d=new Date(r.started);
+    return '<div class="card" data-id="'+r.id+'">'+
+      '<div class="top"><div class="name">'+esc(r.name)+'</div><div class="when">'+
+        d.toLocaleDateString([],{month:'short',day:'numeric'})+' · '+
+        d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+'</div></div>'+
+      '<div class="row">'+
+        '<div>Time<b>'+hms(r.movingMs)+'</b></div>'+
+        '<div>Dist<b>'+(r.distM/1000*k).toFixed(2)+'</b></div>'+
+        '<div>Peak<b>'+(r.max*k).toFixed(1)+'</b></div>'+
+        '<div>Avg<b>'+(r.avg*k).toFixed(1)+'</b></div>'+
+        '<div>Airs<b>'+(r.airs||0)+'</b></div>'+
+        '<div>Best air<b>'+(r.bestAir?r.bestAir.toFixed(2)+'s':'—')+'</b></div>'+
+      '</div><div class="acts">'+
+        (r.airs?'<button class="chip" data-a="airs">Jump list</button>':'')+
+        (r.pts?'<button class="chip" data-a="gpx">GPX</button>':'')+
+        '<button class="chip" data-a="csv">CSV</button>'+
+        '<button class="chip" data-a="del">Delete</button>'+
+      '</div></div>';
+  }).join('');
+}
+$('ridelist').addEventListener('click',async function(e){
+  var b=e.target.closest('button[data-a]'); if(!b) return;
+  var card=b.closest('.card'), id=card.dataset.id, a=b.dataset.a;
+  var list=(await S.get('rm-rides'))||[], r=list.filter(function(x){return x.id===id;})[0];
+  if(!r) return;
+
+  if(a==='del'){
+    await S.set('rm-rides',list.filter(function(x){return x.id!==id;}));
+    await S.del('rm-trk-'+id); await S.del('rm-jmp-'+id);
+    paintList(); toast('Deleted'); return;
+  }
+  if(a==='airs'){
+    var open=card.querySelector('.jl');
+    if(open){ open.remove(); return; }
+    var js=(await S.get('rm-jmp-'+id))||[], k=cfg.units==='imperial'?0.621371:1;
+    card.insertAdjacentHTML('beforeend','<div class="jl">'+js.map(function(j,i){
+      return '<div class="j"><i>'+(i+1)+'</i><b>'+(j[1]/1000).toFixed(2)+'s</b>'+
+        '<em>'+(j[2]*k).toFixed(1)+' '+U.spdLab+' in</em></div>';
+    }).join('')+'</div>');
+    return;
+  }
+  var pts=(await S.get('rm-trk-'+id))||[], js2=(await S.get('rm-jmp-'+id))||[];
+  var base=r.name.replace(/\W+/g,'-')||'ride';
+  if(a==='gpx') dl(base+'.gpx',gpx(r,pts),'application/gpx+xml');
+  if(a==='csv') dl(base+'.csv',csv(r,pts,js2),'text/csv');
+});
+
+function gpx(r,pts){
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Rail" xmlns="http://www.topografix.com/GPX/1/1">\n'+
+  '<metadata><name>'+esc(r.name)+'</name><time>'+new Date(r.started).toISOString()+'</time></metadata>\n'+
+  '<trk><name>'+esc(r.name)+'</name><trkseg>\n'+
+  pts.map(function(p){ return '<trkpt lat="'+p[0]+'" lon="'+p[1]+'"><time>'+new Date(p[2]*1000).toISOString()+'</time></trkpt>'; }).join('\n')+
+  '\n</trkseg></trk></gpx>';
+}
+function csv(r,pts,js){
+  var s='# '+r.name+'\n# start,'+new Date(r.started).toISOString()+
+    '\n# moving_s,'+Math.round(r.movingMs/1000)+'\n# distance_m,'+r.distM+
+    '\n# peak_kmh,'+r.max+'\n# avg_kmh,'+r.avg+'\n# airs,'+(r.airs||0)+
+    '\n# best_air_s,'+(r.bestAir||0)+'\n\njump,airtime_s,takeoff_kmh,time\n';
+  s += js.map(function(j,i){ return (i+1)+','+(j[1]/1000).toFixed(2)+','+j[2]+','+new Date(j[0]*1000).toISOString(); }).join('\n');
+  s += '\n\ntime,lat,lon,speed_kmh\n';
+  s += pts.map(function(p){ return new Date(p[2]*1000).toISOString()+','+p[0]+','+p[1]+','+p[3]; }).join('\n');
+  return s;
+}
+function dl(name,text,mime){
+  try{
+    var blob=new Blob([text],{type:mime});
+    if(navigator.canShare){
+      var f=new File([blob],name,{type:mime});
+      if(navigator.canShare({files:[f]})){ navigator.share({files:[f],title:name}); return; }
+    }
+    var u=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=u; a.download=name; a.click(); setTimeout(function(){URL.revokeObjectURL(u);},4000);
+  }catch(e){ toast('Export blocked here — try the hosted version'); }
+}
+$('btn-dump').addEventListener('click',async function(){
+  var list=(await S.get('rm-rides'))||[],out={exported:new Date().toISOString(),rides:[]};
+  for(var i=0;i<list.length;i++){
+    out.rides.push({ summary:list[i],
+      points:(await S.get('rm-trk-'+list[i].id))||[],
+      jumps:(await S.get('rm-jmp-'+list[i].id))||[] });
+  }
+  dl('rail-all-rides.json',JSON.stringify(out),'application/json');
+});
+
+/* ---------------- selects ---------------- */
+$('sel-scale').addEventListener('change',function(){ cfg.scale=Number(this.value); saveCfg(); afterCfg(); });
+$('sel-acc').addEventListener('change',function(){ cfg.acc=Number(this.value); saveCfg(); afterCfg(); });
+$('sel-minair').addEventListener('change',function(){ cfg.minair=Number(this.value); saveCfg(); });
+seg('seg-units','units'); seg('seg-wake','wake',Number); seg('seg-auto','auto',Number);
+seg('seg-rate','rate'); seg('seg-day','day',Number); seg('seg-track','track',Number);
+seg('seg-air','air',Number); seg('seg-sens','sens');
+
+/* ---------------- boot ---------------- */
+(async function(){
+  var saved=await S.get('rm-cfg'); if(saved) Object.assign(cfg,saved);
+  paintSeg(); afterCfg(); render(true);
+  if(!window.isSecureContext) warn('GPS and motion need https. Host this file (see the README) or open it over https.');
+  else if(typeof DeviceMotionEvent==='undefined') warn('No motion sensor here — speed and distance still work, jump detection will not.');
+  if('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('sw.js').catch(function(){});
+})();
+
+window.addEventListener('beforeunload',function(e){
+  if(ride.status==='running'){ e.preventDefault(); e.returnValue=''; }
+});
+})();
+</script>
+</body>
+</html>
