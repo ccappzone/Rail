@@ -1,7 +1,7 @@
 {
-  "name": "Rail — bike computer",
-  "short_name": "Rail",
-  "description": "Big-digit speed, airtime per jump, time and distance. Logs every session.",
+  "name": "Send It",
+  "short_name": "Send It",
+  "description": "Big-digit speed, airtime, time and distance for biking, hiking and skiing. Logs every session.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",

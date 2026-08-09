@@ -1,15 +1,15 @@
-# Rail — bike computer
+# Send It — Advance Your Ride
 
-Big-digit GPS speed, **airtime per jump**, moving time and distance. Records each session and saves it to a ride list you can export as GPX, CSV or JSON.
+Big-digit GPS speed, a segmented speed bar, **airtime per jump**, moving time and distance. Records each session and saves it to a ride list you can export as GPX, CSV or JSON.
 
 Files:
 
 | File | What it is |
 |---|---|
-| `index.html` | The whole app — layout, styling, logic. Nothing else required to run it. |
+| `index.html` | The whole app — layout, styling, logic, and the logo (embedded as data, so there is no separate image file to upload). |
 | `manifest.webmanifest` | Lets Android install it as a real app (own icon, fullscreen, no browser bars). |
 | `sw.js` | Service worker. Caches the app so it opens instantly and works with no signal. |
-| `icon-*.png`, `apple-touch-icon.png` | Home screen icons. |
+| `icon-*.png`, `apple-touch-icon.png` | Home screen icons — the SI monogram, cut from the logo's own letterforms. |
 
 ---
 
@@ -23,9 +23,9 @@ GPS and the keep-screen-on lock only work over **https**. Opening `index.html` f
 2. New repository → name it `rail` → **Public** → Create.
 3. On the repo page: **Add file → Upload files** → drag in all the files from this folder → Commit.
 4. **Settings → Pages** → Source: *Deploy from a branch* → Branch: `main`, folder: `/ (root)` → Save.
-5. Wait about a minute. Your app is at `https://YOURNAME.github.io/rail/`
+5. Wait about a minute. Your app is at `https://YOURNAME.github.io/send-it/`
 
-To push an update later: upload the changed file, and bump `CACHE = 'rail-v1'` to `rail-v2` in `sw.js`. Without that bump, phones that already installed it keep running the old cached copy.
+To push an update later: upload the changed file, and bump the `CACHE` version in `sw.js` (currently `si-v11`, so go to `si-v12`). Without that bump, phones that already installed it keep running the old cached copy.
 
 **Alternatives:**
 - **Netlify Drop** (netlify.com/drop) — drag the folder onto the page, get a URL in about 20 seconds, no account needed to start. Fastest way to test. Free tier URLs are random-looking but you can rename them.
@@ -85,10 +85,11 @@ Do one run, count your jumps in your head, then check the number against the app
 ## On the screen
 
 - **Speed** — huge, centre screen, one decimal. The only thing you should ever need to read at speed.
-- **Speed rail** — the tick bar under the digits. Amber fill is current speed, the white notch is your session peak. Set the scale in Setup just above your usual top speed. The point is that you can read the *fill position* in peripheral vision without focusing on digits, which is the difference between a glance and taking your eyes off the trail.
+- **Speed bar** — 24 amber segments under the digits, labelled 0 / 25% / 50% / 75% / full scale. The white line is your session peak. Set the scale in Setup just above your usual top speed. The point is that you can read *how many segments are lit* in peripheral vision without focusing on digits — the difference between a glance and taking your eyes off the trail.
 - **Moving time** — clock stops when you stop, if auto-pause is on.
 - **Air line** — last jump, session count, best air. Flashes amber on landing.
-- **Focus** — hides everything but speed and airtime and makes the digits as large as the screen allows.
+- **Colours** — white for speed, time and distance; light grey for avg and peak; light blue for every label. Amber is reserved for the speed bar and a fresh landing.
+- **Focus** — hides the speed bar and stats, keeping the logo, speed and airtime. Digits go as large as the screen allows.
 - **Lock** — for bar mounting. Blocks every tap so bumps and gloved hands can't hit Finish mid-session. Press and hold anywhere for 0.7 s to unlock.
 - **Landscape** — rotate the phone and the layout goes two-column: speed and air on the left, stats and controls on the right. Usually the better bar-mount orientation.
 - **GPS dot** — green under 10 m, amber to 25 m, red beyond. Wait for green before a timed run. The first fix takes 10–30 seconds from cold; longer under trees.
