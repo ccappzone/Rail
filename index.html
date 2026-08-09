@@ -492,6 +492,18 @@ function render(force){
   if(force) paintAir();
 }
 
+/* ---------------- orientation ----------------
+   Manifest "orientation":"portrait" covers the installed app. This is the belt-and-braces
+   call for browser mode; it throws when not fullscreen, so it fails silently by design. */
+function lockPortrait(){
+  try{
+    if(screen.orientation && screen.orientation.lock){
+      var r = screen.orientation.lock('portrait');
+      if(r && r.catch) r.catch(function(){});
+    }
+  }catch(e){}
+}
+
 /* ---------------- wake lock ---------------- */
 async function lockScreen(){
   if(!('wakeLock' in navigator)||wl) return;
@@ -520,7 +532,7 @@ $('btn-go').addEventListener('click',async function(){
   }
   if(ride.status==='idle'){ ride=blank(); ride.started=Date.now(); }
   ride.status='running'; ride.lastTick=Date.now(); ride.last=null; ride.still=0;
-  startGeo();
+  startGeo(); lockPortrait();
   if(Number(cfg.wake)) lockScreen();
   if(Number(cfg.air) && await askMotion()) startMotion();
   if(!tickId) tickId=setInterval(tick,1000);
@@ -683,7 +695,7 @@ seg('seg-air','air',Number); seg('seg-sens','sens');
 /* ---------------- boot ---------------- */
 (async function(){
   var saved=await S.get('rm-cfg'); if(saved) Object.assign(cfg,saved);
-  paintSeg(); afterCfg(); render(true);
+  paintSeg(); afterCfg(); render(true); lockPortrait();
   if(!window.isSecureContext) warn('GPS and motion need https. Host this file (see the README) or open it over https.');
   else if(typeof DeviceMotionEvent==='undefined') warn('No motion sensor here — speed and distance still work, jump detection will not.');
   if('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('sw.js').catch(function(){});

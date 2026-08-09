@@ -1,6 +1,6 @@
 /* Rail service worker — cache-first app shell.
    Bump CACHE when you change any file, or phones keep serving the old version. */
-const CACHE = 'si-v11';
+const CACHE = 'si-v12';
 const FILES = [
   './',
   './index.html',
