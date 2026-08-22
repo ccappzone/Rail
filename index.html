@@ -24,7 +24,8 @@
     font-variant-numeric:tabular-nums;-webkit-user-select:none;user-select:none}
   body.day{--ink:#F2F0EA;--graphite:#E2DFD6;--graphite-2:#D0CCC1;--chalk:#0A0B0C;--label:#1F6FB2;--grey:#4A4F55}
   .screen{position:fixed;inset:0;display:none;flex-direction:column;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+    padding:env(safe-area-inset-top) env(safe-area-inset-right)
+            calc(0.25in + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
   .screen.on{display:flex}
 
   .strip{display:flex;align-items:center;gap:8px;padding:9px var(--pad) 0;
@@ -90,9 +91,18 @@
   /* glove and bump proofing */
   #shield{position:fixed;inset:0;z-index:30;display:none;background:transparent}
   body.locked #shield{display:block}
-  #lockmsg{position:fixed;left:0;right:0;bottom:0;padding:14px;text-align:center;background:var(--graphite);
+  #lockmsg{position:fixed;left:0;right:0;bottom:calc(0.25in + env(safe-area-inset-bottom));padding:14px;text-align:center;background:var(--graphite);
     color:var(--label);font-size:14px;letter-spacing:.18em;text-transform:uppercase;z-index:31;display:none}
   body.locked #lockmsg{display:block}
+
+  /* short screens: claw back height so the new bottom gap can't push content off */
+  @media (max-height:660px){
+    .wordmark{padding-bottom:0.15in}
+    .wordmark img{height:clamp(40px,12vw,58px)}
+    .segs{height:20px}
+    .btn{min-height:64px}
+    .cell{padding:8px var(--pad)}
+  }
 
   @media (orientation:landscape){
     .mainrow{flex-direction:row}
@@ -134,10 +144,10 @@
   input[type=text],select{background:var(--graphite);color:var(--chalk);border:1px solid var(--graphite-2);
     padding:12px;font:inherit;font-size:16px;border-radius:0;width:100%}
   .sheet{position:fixed;inset:0;background:var(--ink);display:none;flex-direction:column;z-index:20;
-    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+    padding:env(safe-area-inset-top) 0 calc(0.25in + env(safe-area-inset-bottom))}
   .sheet.on{display:flex}
   .sum{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--graphite-2);margin:var(--pad)}
-  .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--graphite-2);
+  .toast{position:fixed;left:50%;bottom:calc(100px + 0.25in);transform:translateX(-50%);background:var(--graphite-2);
     color:var(--chalk);padding:11px 16px;font-size:13px;z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
   .toast.on{opacity:1}
   .warn{margin:10px var(--pad) 0;padding:11px 13px;border-left:2px solid var(--amber);
