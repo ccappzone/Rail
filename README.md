@@ -25,7 +25,7 @@ GPS and the keep-screen-on lock only work over **https**. Opening `index.html` f
 4. **Settings → Pages** → Source: *Deploy from a branch* → Branch: `main`, folder: `/ (root)` → Save.
 5. Wait about a minute. Your app is at `https://YOURNAME.github.io/send-it/`
 
-To push an update later: upload the changed file, and bump the `CACHE` version in `sw.js` (currently `si-v11`, so go to `si-v12`). Without that bump, phones that already installed it keep running the old cached copy.
+To push an update later: upload the changed file, and bump the `CACHE` version in `sw.js` (currently `si-v12`, so go to `si-v13`). Without that bump, phones that already installed it keep running the old cached copy.
 
 **Alternatives:**
 - **Netlify Drop** (netlify.com/drop) — drag the folder onto the page, get a URL in about 20 seconds, no account needed to start. Fastest way to test. Free tier URLs are random-looking but you can rename them.
@@ -91,7 +91,7 @@ Do one run, count your jumps in your head, then check the number against the app
 - **Colours** — white for speed, time and distance; light grey for avg and peak; light blue for every label. Amber is reserved for the speed bar and a fresh landing.
 - **Focus** — hides the speed bar and stats, keeping the logo, speed and airtime. Digits go as large as the screen allows.
 - **Lock** — for bar mounting. Blocks every tap so bumps and gloved hands can't hit Finish mid-session. Press and hold anywhere for 0.7 s to unlock.
-- **Landscape** — rotate the phone and the layout goes two-column: speed and air on the left, stats and controls on the right. Usually the better bar-mount orientation.
+- **Orientation** — locked to portrait so the screen never flips mid-run. To switch the app to landscape instead, change `"orientation": "portrait"` to `"landscape"` in `manifest.webmanifest` and reinstall.
 - **GPS dot** — green under 10 m, amber to 25 m, red beyond. Wait for green before a timed run. The first fix takes 10–30 seconds from cold; longer under trees.
 
 ## Accuracy, honestly

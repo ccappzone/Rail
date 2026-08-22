@@ -34,7 +34,7 @@
   .dot.good{background:var(--green)} .dot.ok{background:var(--amber)} .dot.bad{background:var(--red)}
   .chip{border:1px solid var(--graphite-2);border-radius:2px;padding:6px 9px;color:var(--label);
     background:none;font:inherit;letter-spacing:.14em;text-transform:uppercase;font-size:13px}
-  .chip.live{color:var(--amber);border-color:var(--amber)}
+  .chip.live{color:var(--amber);border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
 
   .mainrow{flex:1;display:flex;flex-direction:column;min-height:0}
   .cola{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;padding:0 var(--pad)}
@@ -84,6 +84,8 @@
   .btn.primary{background:var(--amber);color:#0A0B0C}
   .btn.ghost{background:var(--ink);color:var(--label)}
   .btn[disabled]{opacity:.35}
+  .btn.arming{background:var(--red);color:#0A0B0C}
+  .chip.danger{color:var(--red);border-color:var(--red)}
 
   /* glove and bump proofing */
   #shield{position:fixed;inset:0;z-index:30;display:none;background:transparent}
@@ -240,8 +242,8 @@
     <div style="padding:0 16px"><input type="text" id="ride-name" placeholder="Name this ride" autocomplete="off"></div>
   </div>
   <div class="controls">
+    <button class="btn ghost" id="btn-discard">Hold to discard</button>
     <button class="btn primary" id="btn-save">Save ride</button>
-    <button class="btn ghost" id="btn-discard">Discard</button>
   </div>
 </section>
 
@@ -488,7 +490,6 @@ function render(force){
   put(go, ride.status==='running'?'Pause':ride.status==='paused'?'Resume':'Start ride');
   go.classList.toggle('primary',ride.status!=='running');
   $('btn-stop').disabled = ride.status==='idle';
-  $('btn-focus').classList.toggle('live',ride.status==='running');
   if(force) paintAir();
 }
 
@@ -555,8 +556,23 @@ $('btn-stop').addEventListener('click',function(){
   $('ride-name').value=['Dawn','Morning','Afternoon','Evening','Night'][Math.min(4,Math.floor(d.getHours()/5))]+' session';
   $('sheet-save').classList.add('on');
 });
-$('btn-discard').addEventListener('click',function(){
-  $('sheet-save').classList.remove('on'); ride=blank(); render(true); toast('Discarded');
+var disT=null;
+function disReset(){
+  var b=$('btn-discard'); b.classList.remove('arming'); put(b,'Hold to discard');
+}
+$('btn-discard').addEventListener('pointerdown',function(e){
+  e.preventDefault();
+  var b=$('btn-discard'); b.classList.add('arming'); put(b,'Keep holding');
+  clearTimeout(disT);
+  disT=setTimeout(function(){
+    disT=null; disReset();
+    $('sheet-save').classList.remove('on'); ride=blank(); render(true); toast('Discarded');
+  },800);
+},{passive:false});
+['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+  $('btn-discard').addEventListener(ev,function(){
+    if(disT){ clearTimeout(disT); disT=null; disReset(); toast('Hold it down to discard'); }
+  });
 });
 $('btn-save').addEventListener('click',async function(){
   var id='r'+ride.started, hrs=ride.movingMs/3600000;
@@ -575,11 +591,17 @@ $('btn-save').addEventListener('click',async function(){
 /* ---------------- lock: bumps and gloves ---------------- */
 var holdT=null;
 $('btn-lock').addEventListener('click',function(){
-  document.body.classList.add('locked'); toast('Locked — hold anywhere to unlock');
+  document.body.classList.add('locked');
+  $('btn-lock').classList.add('live');
+  toast('Locked — hold anywhere to unlock');
 });
 $('shield').addEventListener('pointerdown',function(e){
   e.preventDefault(); clearTimeout(holdT);
-  holdT=setTimeout(function(){ document.body.classList.remove('locked'); toast('Unlocked'); },700);
+  holdT=setTimeout(function(){
+    document.body.classList.remove('locked');
+    $('btn-lock').classList.remove('live');
+    toast('Unlocked');
+  },700);
 },{passive:false});
 ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
   $('shield').addEventListener(ev,function(){ clearTimeout(holdT); });
@@ -591,7 +613,10 @@ $('btn-rides').addEventListener('click',function(){ show('s-list'); paintList();
 $('btn-set').addEventListener('click',function(){ show('s-setup'); });
 $('btn-back1').addEventListener('click',function(){ show('s-ride'); });
 $('btn-back2').addEventListener('click',function(){ show('s-ride'); });
-$('btn-focus').addEventListener('click',function(){ document.body.classList.toggle('focus'); });
+$('btn-focus').addEventListener('click',function(){
+  var on=document.body.classList.toggle('focus');
+  $('btn-focus').classList.toggle('live',on);
+});
 
 /* ---------------- ride list ---------------- */
 async function paintList(){
@@ -626,6 +651,11 @@ $('ridelist').addEventListener('click',async function(e){
   if(!r) return;
 
   if(a==='del'){
+    if(b.dataset.arm!=='1'){                       // first tap only arms it
+      b.dataset.arm='1'; b.textContent='Confirm?'; b.classList.add('danger');
+      setTimeout(function(){ if(b.isConnected){ b.dataset.arm=''; b.textContent='Delete'; b.classList.remove('danger'); } },3000);
+      return;
+    }
     await S.set('rm-rides',list.filter(function(x){return x.id!==id;}));
     await S.del('rm-trk-'+id); await S.del('rm-jmp-'+id);
     paintList(); toast('Deleted'); return;
