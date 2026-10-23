@@ -1,4 +1,4 @@
-/* Send It service worker — v37
+/* Send It service worker — v39
 
    Two bugs in the old one are fixed here.
 
@@ -13,7 +13,7 @@
       came back as a page of HTML, which the tile parser choked on. Non-navigation
       requests now fail cleanly instead of being handed a document.
 */
-const CACHE = 'si-v37';
+const CACHE = 'si-v39';
 
 const SHELL = [
   './',
@@ -62,12 +62,19 @@ self.addEventListener('fetch', e => {
   if (url.origin !== self.location.origin) return;
 
   // App shell and navigations: network-first so updates actually arrive.
+  //
+  // cache:'no-store' matters more than it looks. A plain fetch() still consults the
+  // browser's HTTP cache, and GitHub Pages serves with a ten-minute cache lifetime —
+  // so "network-first" could be answered from a stale cached copy and look fresh.
+  // This goes to the network every time, and falls back to our own cache offline.
   if (req.mode === 'navigate' || isShell(url)) {
     e.respondWith(
-      fetch(req)
+      fetch(url.href, { cache: 'no-store', credentials: 'same-origin' })
         .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+          }
           return res;
         })
         .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))

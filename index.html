@@ -438,11 +438,6 @@
     <button class="btn primary" id="btn-save">Save ride</button>
     <button class="btn ghost" id="btn-discard">Hold to discard</button>
   </div>
-  <div class="controls" id="sum-controls-saved" hidden>
-    <button class="btn ghost" id="btn-sum-gpx">GPX</button>
-    <button class="btn ghost" id="btn-sum-csv">CSV</button>
-    <button class="btn primary" id="btn-sum-done">Done</button>
-  </div>
 </section>
 
 <div class="toast" id="toast"></div>
@@ -527,7 +522,7 @@ function put(el,v){ if(el && el._v!==v){ el._v=v; el.textContent=v; } }
 function esc(s){ return String(s).replace(/[<>&"]/g,function(c){ return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'})[c]; }); }
 
 /* ---------------- settings ---------------- */
-var APP_VERSION = 'v37';
+var APP_VERSION = 'v39';
 var cfg = { units:'metric', wake:1, bg:1, rate:'fast', day:0, scale:60, acc:20, track:1,
             air:1, sens:'med', minair:180 };
 var U = { spd:1, spdLab:'km/h', distLab:'km' };
@@ -1548,8 +1543,10 @@ function openSummary(r, pts, jumps, saved){
   $('ride-name').hidden = !!saved;
   $('sum-name').hidden  = !saved;
   $('sum-name').textContent = r.name||'Ride';
+  // Viewing an already-saved ride needs no button bar at all. Close is in the header,
+  // and GPX/CSV live on the ride card where they belong. A row of buttons here only
+  // put an accidental tap between the rider and the screen they wanted.
   $('sum-controls').hidden = !!saved;
-  $('sum-controls-saved').hidden = !saved;
 
   var d=new Date(r.started);
   $('sum-when').textContent = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+
@@ -1602,15 +1599,6 @@ $('sum-thumb').addEventListener('click',function(){
   openMap(SUM.pts, SUM.jumps, SUM.r && SUM.r.name ? SUM.r.name : 'This ride');
 });
 $('btn-sum-close').addEventListener('click',function(){ show('s-list'); paintList(); });
-$('btn-sum-done').addEventListener('click',function(){ show('s-list'); paintList(); });
-$('btn-sum-gpx').addEventListener('click',function(){
-  var base=(SUM.r.name||'ride').replace(/\W+/g,'-');
-  dl(base+'.gpx', gpx(SUM.r, SUM.pts), 'application/gpx+xml');
-});
-$('btn-sum-csv').addEventListener('click',function(){
-  var base=(SUM.r.name||'ride').replace(/\W+/g,'-');
-  dl(base+'.csv', csv(SUM.r, SUM.pts, SUM.jumps), 'text/csv');
-});
 window.addEventListener('resize',function(){
   if($('s-sum').classList.contains('on')){ drawThumb(); drawSpeed(); }
 });
@@ -1706,25 +1694,77 @@ function csv(r,pts,js){
   s += pts.map(function(p){ return new Date(p[2]*1000).toISOString()+','+p[0]+','+p[1]+','+p[3]; }).join('\n');
   return s;
 }
-function dl(name,text,mime){
+/* Export used to fail silently, which is the worst way for anything to fail.
+   navigator.share() needs a recent tap to be allowed, and it returns a promise whose
+   rejection the old code never caught — so when the share sheet was refused, nothing
+   happened at all and the button looked dead. It also never confirmed success, so even
+   a working download looked like nothing had happened.
+
+   Now: try the share sheet, fall back to a download if that is not allowed, and always
+   say which one happened — or that neither did. */
+async function dl(name,text,mime){
+  var blob;
+  try{ blob=new Blob([text],{type:mime}); }
+  catch(e){ toast('Could not build the file'); return false; }
+
+  // 1 — the share sheet: mail, Drive, messages, anywhere the phone can send a file
   try{
-    var blob=new Blob([text],{type:mime});
-    if(navigator.canShare){
+    if(navigator.canShare && typeof File==='function'){
       var f=new File([blob],name,{type:mime});
-      if(navigator.canShare({files:[f]})){ navigator.share({files:[f],title:name}); return; }
+      if(navigator.canShare({files:[f]})){
+        await navigator.share({files:[f],title:name});
+        toast('Shared '+name);
+        return true;
+      }
     }
-    var u=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=u; a.download=name; a.click(); setTimeout(function(){URL.revokeObjectURL(u);},4000);
-  }catch(e){ toast('Export blocked here — try the hosted version'); }
+  }catch(e){
+    // the rider backing out of the share sheet is a choice, not a failure
+    if(e && (e.name==='AbortError' || e.name==='NotAllowedError' && /abort/i.test(e.message||''))){
+      return false;
+    }
+    // anything else (usually the tap being too stale to count) falls through
+  }
+
+  // 2 — a plain download
+  try{
+    var u=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=u; a.download=name; a.rel='noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(u); },10000);
+    toast('Saved '+name+' to Downloads');
+    return true;
+  }catch(e){}
+
+  toast('Export failed — nothing on this phone would take the file');
+  return false;
 }
 $('btn-dump').addEventListener('click',async function(){
-  var list=(await S.get('rm-rides'))||[],out={exported:new Date().toISOString(),rides:[]};
-  for(var i=0;i<list.length;i++){
-    out.rides.push({ summary:list[i],
-      points:(await ptsFor(list[i].id)),
-      jumps:(await S.get('rm-jmp-'+list[i].id))||[] });
+  var btn=this;
+  if(btn.disabled) return;
+  var list=(await S.get('rm-rides'))||[];
+  if(!list.length){ toast('No rides to export yet'); return; }
+
+  btn.disabled=true; put(btn,'Gathering '+list.length+' rides…');
+  var out={ app:'Send It', version:APP_VERSION, exported:new Date().toISOString(),
+            units:cfg.units, rides:[] };
+  try{
+    for(var i=0;i<list.length;i++){
+      out.rides.push({ summary:list[i],
+        points:(await ptsFor(list[i].id)),
+        jumps:(await S.get('rm-jmp-'+list[i].id))||[] });
+    }
+  }catch(e){
+    btn.disabled=false; put(btn,'Export all rides');
+    toast('Could not read every ride — nothing exported'); return;
   }
-  dl('rail-all-rides.json',JSON.stringify(out),'application/json');
+
+  var text=JSON.stringify(out);
+  var kb=Math.max(1,Math.round(text.length/1024));
+  var stamp=new Date().toISOString().slice(0,10);
+  put(btn,'Export all rides');
+  btn.disabled=false;
+  var okd=await dl('send-it-'+stamp+'.json',text,'application/json');
+  if(okd) toast(list.length+(list.length===1?' ride':' rides')+' · '+kb+' KB');
 });
 
 /* ---------------- air test ----------------
@@ -1910,7 +1950,10 @@ var swReg=null, swWaiting=false, swReloading=false;
 function initSW(){
   if(!('serviceWorker' in navigator) || !window.isSecureContext) return;
 
-  navigator.serviceWorker.register('sw.js').then(function(reg){
+  /* updateViaCache:'none' makes the browser bypass its HTTP cache when it checks
+     sw.js. Without it, GitHub Pages' ten-minute cache header means an update check
+     can be answered from cache and report "up to date" when it is not. */
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(reg){
     swReg=reg;
     reg.addEventListener('updatefound',function(){
       var nw=reg.installing; if(!nw) return;
