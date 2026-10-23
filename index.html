@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#08090A">
 <meta name="mobile-web-app-capable" content="yes">
+<!-- iOS ignores the manifest's display mode before 16.4 and needs these to run
+     standalone. Without them an iPhone opens the app inside Safari's chrome. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Send It">
 <title>Send It</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -394,6 +399,7 @@
         </div>
         <div class="dlog" id="dlog"><div class="ln">No detections yet</div></div>
       </div>
+      <button class="btn" style="min-height:48px;margin-top:14px" id="btn-update">Check for updates</button>
       <div class="ver" id="verline">Send It —</div>
     </div>
   </div>
@@ -521,7 +527,7 @@ function put(el,v){ if(el && el._v!==v){ el._v=v; el.textContent=v; } }
 function esc(s){ return String(s).replace(/[<>&"]/g,function(c){ return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'})[c]; }); }
 
 /* ---------------- settings ---------------- */
-var APP_VERSION = 'v35';
+var APP_VERSION = 'v37';
 var cfg = { units:'metric', wake:1, bg:1, rate:'fast', day:0, scale:60, acc:20, track:1,
             air:1, sens:'med', minair:180 };
 var U = { spd:1, spdLab:'km/h', distLab:'km' };
@@ -1020,6 +1026,7 @@ function onHidden(){
 }
 function onVisible(){
   startClock();
+  checkUpdate();
   if(ride.status==='running'){
     if(Number(cfg.wake)) lockScreen();
     keepaliveOn();
@@ -1793,6 +1800,18 @@ function holdButton(id, armedLabel, ms, fn){
   });
 }
 
+$('btn-update').addEventListener('click',function(){
+  if(swWaiting){ applyUpdate(); return; }
+  if(!('serviceWorker' in navigator) || !window.isSecureContext){
+    toast('Updates need the app served over https'); return;
+  }
+  toast('Checking…');
+  if(!swReg){ location.reload(); return; }
+  swReg.update().then(function(){
+    setTimeout(function(){ toast(swWaiting ? 'Update found — restarting' : 'Already up to date'); }, 1200);
+  }).catch(function(){ toast('Could not reach the server'); });
+});
+
 /* ---------------- selects ---------------- */
 $('sel-scale').addEventListener('change',function(){ cfg.scale=Number(this.value); saveCfg(); afterCfg(); });
 $('sel-acc').addEventListener('change',function(){ cfg.acc=Number(this.value); saveCfg(); afterCfg(); });
@@ -1870,13 +1889,68 @@ holdButton('btn-resume-fin','Keep holding',700,function(){
 (async function(){
   var saved=await S.get('rm-cfg'); if(saved) Object.assign(cfg,saved);
   paintSeg(); afterCfg(); render(true); lockPortrait();
-  $('verline').textContent='Send It '+APP_VERSION+' · '+(IDB.ok()?'crash-safe storage on':'localStorage only');
+  paintVer();
   startClock();
   try{ await tryResume(); }catch(e){}
   if(!window.isSecureContext) warn('GPS and motion need https. Host this file (see the README) or open it over https.');
   else if(typeof DeviceMotionEvent==='undefined') warn('No motion sensor here — speed and distance still work, jump detection will not.');
-  if('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('sw.js').catch(function(){});
+  initSW();
 })();
+
+/* ---------------- staying up to date ----------------
+   Registering the worker was never the problem. The gap was that nothing watched for a
+   NEW worker taking over: it would install quietly in the background while the page
+   already on screen carried on showing the old build, so a fresh deploy only appeared
+   after the app was fully closed and reopened — and that is not obvious to anyone.
+
+   Now the app notices, and reloads itself the moment it is safe to. Never mid-ride:
+   an update that interrupted a recording would be a far worse bug than a stale one. */
+var swReg=null, swWaiting=false, swReloading=false;
+
+function initSW(){
+  if(!('serviceWorker' in navigator) || !window.isSecureContext) return;
+
+  navigator.serviceWorker.register('sw.js').then(function(reg){
+    swReg=reg;
+    reg.addEventListener('updatefound',function(){
+      var nw=reg.installing; if(!nw) return;
+      nw.addEventListener('statechange',function(){
+        // controller present means this is an update, not the very first install
+        if(nw.state==='installed' && navigator.serviceWorker.controller){
+          swWaiting=true; paintVer(); applyUpdate();
+        }
+      });
+    });
+  }).catch(function(){});
+
+  navigator.serviceWorker.addEventListener('controllerchange',function(){
+    if(swReloading) return;
+    if(ride.status!=='idle'){ swWaiting=true; paintVer(); return; }
+    swReloading=true; location.reload();
+  });
+}
+
+function applyUpdate(){
+  if(!swWaiting) return;
+  if(ride.status!=='idle'){
+    toast('Update ready — it will apply when the ride is done');
+    return;
+  }
+  if(swReg && swReg.waiting){ swReg.waiting.postMessage('skip-waiting'); return; }
+  if(!swReloading){ swReloading=true; location.reload(); }
+}
+
+/* Check on the way back to the foreground — that is when a rider has most likely just
+   regained signal, and it costs one conditional request. */
+function checkUpdate(){ if(swReg) swReg.update().catch(function(){}); }
+
+function paintVer(){
+  var el=$('verline'); if(!el) return;
+  el.textContent = 'Send It '+APP_VERSION+' · '+
+    (IDB.ok()?'crash-safe storage on':'localStorage only')+
+    (swWaiting?' · update ready':'');
+  var b=$('btn-update'); if(b) put(b, swWaiting?'Restart to update':'Check for updates');
+}
 
 /* beforeunload is unreliable on Android and a dialog is no substitute for a journal.
    Flush instead of nagging. */

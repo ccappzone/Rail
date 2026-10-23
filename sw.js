@@ -1,4 +1,4 @@
-/* Send It service worker — v35
+/* Send It service worker — v37
 
    Two bugs in the old one are fixed here.
 
@@ -13,7 +13,7 @@
       came back as a page of HTML, which the tile parser choked on. Non-navigation
       requests now fail cleanly instead of being handed a document.
 */
-const CACHE = 'si-v35';
+const CACHE = 'si-v37';
 
 const SHELL = [
   './',
