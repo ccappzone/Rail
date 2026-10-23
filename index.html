@@ -15,6 +15,12 @@
     --chalk:#EDEBE6; --label:#85C8FF; --grey:#C9CED3;
     --amber:#FFB020; --red:#FF5A47; --green:#4FD1A5;
     --pad:16px;
+    /* ONE proportional scale unit. The ride screen was designed at 360x780 (a Galaxy
+       S23), so --k is "how many times bigger is this screen than that one", limited by
+       whichever dimension is tighter. Every size on the ride screen is then that design
+       value times --k, which means the layout keeps its exact proportions on any phone
+       instead of each element capping out on its own and drifting out of balance. */
+    --k: min(calc(100vw / 360), calc(100vh / 780));
     --display:"Roboto Condensed","Archivo Narrow","Oswald",system-ui,sans-serif;
     --util:"Roboto","Inter",system-ui,-apple-system,sans-serif;
   }
@@ -37,50 +43,77 @@
     background:none;font:inherit;letter-spacing:.14em;text-transform:uppercase;font-size:13px}
   .chip.live{color:var(--amber);border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
 
-  .mainrow{flex:1;display:flex;flex-direction:column;min-height:0}
-  .cola{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0;padding:0 var(--pad)}
-  .colb{display:flex;flex-direction:column}
+  /* Logo band: full width across the top, always visible, Craig's artwork at 60px
+     on a 360px screen. Sized in vw so it holds its proportion on other phones. */
+  .logoband{flex:none;padding:6px 0;background:#0A0B0C;border-bottom:1px solid var(--graphite-2);
+    display:flex;align-items:center;justify-content:center;line-height:0}
+  .logoband img{height:clamp(34px,calc(60 * var(--k)),104px);width:auto;max-width:92%;
+    object-fit:contain;display:block}
+  body.day .logoband img{filter:brightness(.4) saturate(1.3)}
 
-  /* logo: height-capped so it never steals room from the speed digits */
-  .wordmark{text-align:center;padding-bottom:0.25in;line-height:0}
-  .wordmark img{height:clamp(52px,17vw,92px);width:auto;max-width:92%;
-    object-fit:contain;display:inline-block}
-  body.day .wordmark img{filter:brightness(.45) saturate(1.3)}
+  /* Split layout, identical in both orientations. 1.66:1 — on a 360px screen that is
+     224px for the digits and 135px for the stat column. */
+  .mainrow{flex:1;display:flex;flex-direction:row;min-height:0;gap:1px;background:var(--graphite-2)}
+  .cola{flex:1.66;display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--ink)}
+  .gaugerow{flex:1;display:flex;gap:calc(11 * var(--k));min-height:0;align-items:center;
+    padding:calc(12 * var(--k)) calc(10 * var(--k)) calc(12 * var(--k)) calc(12 * var(--k))}
+  .colb{flex:1;display:flex;flex-direction:column;gap:1px;background:var(--graphite-2);min-width:0}
 
-  .readout{display:flex;align-items:flex-end;justify-content:center;gap:10px;line-height:.78}
-  #speed{font-family:var(--display);font-weight:700;letter-spacing:-.03em;
-    font-size:min(clamp(5.5rem,39.6vw,16.5rem),34vh)}
-  .unit{font-family:var(--display);font-size:clamp(1.2rem,6vw,2.4rem);letter-spacing:.1em;
-    text-transform:uppercase;color:var(--label);padding-bottom:.9em}
+  .speedblock{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+  .readout{line-height:.82}
+  #speed{font-family:var(--display);font-weight:700;letter-spacing:-.03em;display:block;
+    font-size:clamp(2.4rem,calc(90 * var(--k)),10rem)}
+  /* three-digit readings only happen in a vehicle, but they must not clip */
+  #speed.wide{font-size:clamp(2rem,calc(71 * var(--k)),8rem)}
+  .unit{font-family:var(--display);font-size:clamp(.62rem,calc(12 * var(--k)),1.4rem);
+    letter-spacing:.14em;text-transform:uppercase;color:var(--label);margin-top:calc(6 * var(--k))}
+  .peaklab{font-size:clamp(.62rem,calc(12 * var(--k)),1.4rem);letter-spacing:.16em;
+    text-transform:uppercase;color:var(--label);margin-top:calc(16 * var(--k))}
+  .peaklab b{font-family:var(--display);font-weight:600;color:#C9CED3;
+    font-size:clamp(.82rem,calc(16 * var(--k)),1.9rem)}
 
-  /* segmented bar graph: reads in peripheral vision, and only changed segments repaint */
-  .rail{position:relative;margin:16px 2px 0;padding-top:9px}
-  .segs{display:flex;gap:2px;align-items:flex-end}
-  .segs i{flex:1;background:var(--graphite-2);position:relative}
+  /* clock parked bottom-left, under the speed */
+  .clockcell{flex:none;border-top:1px solid var(--graphite-2);
+    padding:calc(10 * var(--k)) calc(12 * var(--k)) calc(12 * var(--k))}
+  .clockcell .k{font-size:clamp(.58rem,calc(11 * var(--k)),1.25rem);letter-spacing:.16em;
+    text-transform:uppercase;color:var(--label)}
+  .clockcell .v{font-family:var(--display);font-size:clamp(1.3rem,calc(34 * var(--k)),3.6rem);
+    font-weight:600;color:var(--chalk);line-height:1.05;margin-top:calc(3 * var(--k))}
+
+  /* Vertical segmented gauge. Stacks bottom-up so it fills like a column of mercury,
+     which reads in peripheral vision without taking horizontal room off the digits. */
+  .vrail{position:relative;width:clamp(14px,calc(24 * var(--k)),42px);flex:none;display:flex;
+    flex-direction:column;height:64%}
+  .vscale{font-size:clamp(.55rem,calc(10 * var(--k)),1.1rem);letter-spacing:.1em;
+    color:var(--label);text-align:center;line-height:1.4}
+  .segwrap{flex:1;position:relative;min-height:0;display:flex}
+  .segs{flex:1;display:flex;flex-direction:column-reverse;gap:2px;align-items:center;min-height:0}
+  .segs i{width:62%;flex:1;background:var(--graphite-2);position:relative;border-radius:1px}
   .segs i.on{background:var(--amber)}
-  .segs i.q::before{content:"";position:absolute;left:-1.5px;top:-8px;width:1px;height:6px;background:var(--label)}
-  #peak{position:absolute;top:5px;bottom:0;width:2px;background:var(--chalk);left:0;transform:translateX(-1px)}
-  .railtags{display:flex;justify-content:space-between;font-size:12px;letter-spacing:.16em;color:var(--label);margin:0 2px}
+  .segs i.q::after{content:"";position:absolute;right:-6px;top:50%;width:4px;height:1px;background:var(--label)}
+  #peak{position:absolute;left:0;right:0;height:2px;background:var(--chalk);bottom:0;pointer-events:none}
 
-  /* air line — second hero, live jump feedback */
-  .airline{display:flex;align-items:baseline;gap:10px;margin:14px 2px 0;
-    padding-top:12px;border-top:1px solid var(--graphite-2)}
-  .airk{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--label)}
-  .airv{font-family:var(--display);font-weight:700;font-size:clamp(2rem,13vw,4rem);line-height:.9}
-  .airsub{margin-left:auto;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--label);text-align:right}
-  .airline.live .airv,.airline.live .airk{color:var(--amber)}
-  body.noair .airline{display:none}
-
-  .stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--graphite-2);margin-top:18px}
-  .cell{background:var(--ink);padding:11px var(--pad)}
-  .cell .k{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--label)}
-  .cell .v{font-family:var(--display);font-size:clamp(1.73rem,9.2vw,2.76rem);font-weight:600;line-height:1.1;margin-top:2px}
+  .colb .cell{background:var(--ink);flex:1;display:flex;flex-direction:column;justify-content:center;
+    padding:calc(8 * var(--k)) calc(10 * var(--k));min-height:0}
+  .cell .k{font-size:clamp(.58rem,calc(11 * var(--k)),1.25rem);letter-spacing:.14em;
+    text-transform:uppercase;color:var(--label)}
+  .cell .v{font-family:var(--display);font-size:clamp(1.15rem,calc(32 * var(--k)),3.4rem);
+    font-weight:600;line-height:1.08;margin-top:calc(3 * var(--k));white-space:nowrap}
   .cell.sm .v{color:var(--grey)}
-  body.focus .stats,body.focus .rail,body.focus .railtags{display:none}
+  .cell .sub{font-size:clamp(.52rem,calc(10 * var(--k)),1.1rem);letter-spacing:.06em;
+    text-transform:uppercase;color:var(--grey);margin-top:calc(3 * var(--k));
+    white-space:nowrap;overflow:hidden}
+  .cell.air .k,.cell.air .v{color:var(--amber)}
+  body.noair .cell.air{display:none}
+
+  /* After any screen change the controls ignore input briefly, so a press that carries
+     over from the previous screen cannot land on whatever now sits under the thumb. */
+  body.guard .controls{pointer-events:none}
 
   .controls{display:flex;gap:1px;background:var(--graphite-2);padding-top:1px}
-  .btn{flex:1;min-height:74px;border:0;background:var(--graphite);color:var(--chalk);
-    font-family:var(--display);font-size:19px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+  .btn{flex:1;min-height:clamp(54px,calc(72 * var(--k)),110px);border:0;background:var(--graphite);
+    color:var(--chalk);font-family:var(--display);letter-spacing:.14em;text-transform:uppercase;
+    font-weight:600;font-size:clamp(15px,calc(19 * var(--k)),30px)}
   .btn:active{background:var(--graphite-2)}
   .btn.primary{background:var(--amber);color:#0A0B0C}
   .btn.ghost{background:var(--ink);color:var(--label)}
@@ -95,24 +128,21 @@
     color:var(--label);font-size:14px;letter-spacing:.18em;text-transform:uppercase;z-index:31;display:none}
   body.locked #lockmsg{display:block}
 
-  /* short screens: claw back height so the new bottom gap can't push content off */
+  /* short screens and landscape: five cells plus controls is tight, so tighten the
+     cells rather than shrinking the speed digits */
+  /* A short screen is short in a way --k cannot fix: trim the fixed chrome, not the
+     readings, so the numbers stay as large as the proportions allow */
   @media (max-height:660px){
-    .wordmark{padding-bottom:0.15in}
-    .wordmark img{height:clamp(40px,12vw,58px)}
-    .btn{min-height:64px}
-    .cell{padding:8px var(--pad)}
+    .logoband{padding:calc(3 * var(--k)) 0}
+    .colb .cell{padding:calc(5 * var(--k)) calc(9 * var(--k))}
+    .clockcell{padding:calc(6 * var(--k)) calc(12 * var(--k)) calc(8 * var(--k))}
+    .peaklab{margin-top:calc(8 * var(--k))}
   }
 
+  /* --k already flips for landscape above, so sizes carry over proportionally and
+     these only need to claw back the vertical padding a short screen cannot spare */
   @media (orientation:landscape){
-    .mainrow{flex-direction:row}
-    .cola{flex:1.25;padding:0 var(--pad) 8px}
-    .colb{flex:1;justify-content:flex-end;border-left:1px solid var(--graphite-2)}
-    .stats{margin-top:0}
-    #speed{font-size:min(24.2vw,31vh)}
-    .wordmark{padding-bottom:0.12in}
-    .wordmark img{height:min(12vh,56px)}
-    .airv{font-size:min(9vw,14vh)}
-    .btn{min-height:62px}
+    .btn{min-height:clamp(52px,calc(62 * var(--k)),92px)}
   }
 
   .head{display:flex;align-items:center;gap:12px;padding:14px var(--pad);border-bottom:1px solid var(--graphite-2)}
@@ -145,12 +175,82 @@
   .sheet{position:fixed;inset:0;background:var(--ink);display:none;flex-direction:column;z-index:20;
     padding:env(safe-area-inset-top) 0 calc(0.30in + env(safe-area-inset-bottom))}
   .sheet.on{display:flex}
+
+  /* ---- live status banner ---- */
+  .banner{display:none;padding:7px var(--pad);font-size:13px;letter-spacing:.16em;
+    text-transform:uppercase;font-weight:600;text-align:center}
+  .banner.rec{display:block;background:#241a05;color:var(--amber)}
+  .banner.pau{display:block;background:#2a1207;color:var(--amber);animation:blink 1.1s steps(2,start) infinite}
+  @keyframes blink{50%{opacity:.28}}
+
+  /* ---- map / breadcrumb ---- */
+  #mapwrap{flex:1;position:relative;min-height:0;background:var(--graphite)}
+  #mapcv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .maphint{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:12px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--label);opacity:.75;pointer-events:none}
+  .mapbar{display:flex;gap:1px;background:var(--graphite-2);padding-top:1px}
+  .mapbar button{flex:1;background:var(--ink);color:var(--label);border:0;font:inherit;
+    padding:11px 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+  .mapbar button.sel{color:var(--amber)}
+  .legend{display:flex;align-items:center;gap:6px;padding:8px var(--pad);font-size:11px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--grey)}
+  .legend .ramp{flex:1;height:6px;border-radius:3px;
+    background:linear-gradient(90deg,#3B6EA5,#4FD1A5,#FFB020,#FF5A47)}
+  /* ---- post-ride summary ---- */
+  #s-sum .body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .hero{padding:14px var(--pad) 10px}
+  .hero .hname{font-family:var(--display);font-size:clamp(1.5rem,7vw,2.1rem);font-weight:600;line-height:1.1}
+  .hero .hwhen{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--label);margin-top:5px}
+  .thumb{position:relative;height:190px;background:var(--graphite);margin:0 0 1px}
+  .thumb canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .thumb .tap{position:absolute;right:8px;bottom:8px;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--label);background:rgba(8,9,10,.72);padding:5px 8px;border-radius:2px}
+  .big{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--graphite-2)}
+  .big .cell{background:var(--ink);padding:12px var(--pad)}
+  .big .cell.w{grid-column:1 / -1}
+  .sect{padding:14px var(--pad) 6px;font-size:12px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--label)}
+  .chartbox{height:120px;position:relative;margin:0 var(--pad) 4px;background:var(--graphite)}
+  .chartbox canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .chartlab{display:flex;justify-content:space-between;padding:4px var(--pad) 0;
+    font-size:11px;color:var(--grey)}
+  .jbar{display:flex;align-items:center;gap:9px;padding:7px var(--pad)}
+  .jbar i{font-style:normal;color:var(--grey);font-size:12px;width:22px}
+  .jbar .track{flex:1;height:9px;background:var(--graphite-2);border-radius:2px;overflow:hidden}
+  .jbar .track span{display:block;height:100%;background:var(--amber)}
+  .jbar b{font-family:var(--display);font-size:16px;min-width:52px;text-align:right}
+  .jbar em{font-style:normal;color:var(--grey);font-size:11px;min-width:66px;text-align:right}
+  .note{padding:10px var(--pad) 16px;color:var(--grey);font-size:13px;line-height:1.5}
+  /* ---- air test ---- */
+  .gbar{height:26px;background:var(--graphite-2);position:relative;border-radius:2px;overflow:hidden;margin:8px 0}
+  .gbar .fill{position:absolute;left:0;top:0;bottom:0;background:var(--green);width:0%}
+  .gbar .mark{position:absolute;top:0;bottom:0;width:2px;background:var(--red)}
+  .gbar .cap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--display);font-size:14px;font-weight:600;color:var(--chalk);
+    text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  .airstate{display:flex;gap:1px;background:var(--graphite-2);margin:8px 0}
+  .airstate div{flex:1;background:var(--ink);padding:8px 4px;text-align:center;
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--grey)}
+  .airstate div.on{color:var(--amber);background:#241a05}
+  .dlog{font-size:12px;color:var(--grey);line-height:1.7;max-height:160px;overflow-y:auto}
+  .dlog .ln{display:flex;gap:8px;border-top:1px solid var(--graphite-2);padding:3px 0}
+  .dlog .ln b{min-width:58px;font-family:var(--display);font-size:14px;color:var(--chalk)}
+  .dlog .ln .ok{color:var(--green)} .dlog .ln .no{color:var(--red)} .dlog .ln .dr{color:var(--grey)}
+  .edge{position:fixed;top:0;bottom:0;width:22px;z-index:5}
+  .edge.r{right:0}
+  .ver{font-size:11px;letter-spacing:.12em;color:var(--grey);opacity:.6;
+    text-align:center;padding:6px 0 2px}
   .sum{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--graphite-2);margin:var(--pad)}
   .toast{position:fixed;left:50%;bottom:calc(100px + 0.30in);transform:translateX(-50%);background:var(--graphite-2);
     color:var(--chalk);padding:11px 16px;font-size:13px;z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
   .toast.on{opacity:1}
   .warn{margin:10px var(--pad) 0;padding:11px 13px;border-left:2px solid var(--amber);
     background:var(--graphite);font-size:13px;line-height:1.5;color:var(--chalk)}
+  /* landscape swaps the reference: the design is 780x360 that way round */
+  @media (orientation:landscape){
+    :root{ --k: min(calc(100vw / 780), calc(100vh / 360)); }
+  }
+
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
   :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 </style>
@@ -159,48 +259,91 @@
 
 <!-- ================= RIDE ================= -->
 <section id="s-ride" class="screen on">
+  <div class="logoband"><img src="data:image/png;base64,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" alt="Send It — Advance Your Ride" width="731" height="200"></div>
   <div class="strip">
     <span><i id="gpsdot" class="dot"></i><span id="gpstxt">No fix</span></span>
     <span class="sep"></span>
     <button class="chip" id="btn-lock">Lock</button>
-    <button class="chip" id="btn-focus">Focus</button>
     <button class="chip" id="btn-rides">Rides</button>
     <button class="chip" id="btn-set">Setup</button>
   </div>
 
   <div id="warn" class="warn" hidden></div>
+  <div id="banner" class="banner"></div>
 
   <div class="mainrow">
     <div class="cola">
-      <div class="wordmark" id="wordmark"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAtsAAADICAMAAAAOc92GAAAAflBMVEUAAAD6+vpkZGKFyP5jY2OioqGrq6r39vZZWVddXVumpqUhISCZmZguLi10r+AtMDHNzczX19UvVF9bibBcnrd1qdgA//9dd7NMcpE9fLk5Vm8AAP9ZWSRJbo1aiK7Bwb4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC79lyTAAAAIHRSTlMA/ff+DPMKBV+eqFtZnfnSpmIZtggTAQn7BO0BDU75+UGxpVcAACzASURBVHja7Z2Hets6soAhZFDYIinl+GSvT/z+b3mJSgBEIyjJtszZb3fjRKZYfg6mA6FDvpowhEaCp+NGHPJsAgjx/kTwcNyKQ55MKEL4dJrhPm7FIU9nkgzkJOAGxOhxOw55HouEIRBqe5ZuoAfbhzyRRcLQqNA+kUka34cc8hxqG+hENNunXhrfhxzyHGwj1J2s9BSxQ3Mf8iyeJL0sbBOODpP7kGcxtik5OUImgENxH/IMbNOhO3nSHe7kIU9ibE/EZ/syq/JDDnkGtvtTIISiwyo55LN7kQyx7rSSI4NzyOfX2oA4WbNNDpP7kM8P94RPETkyOId8fmO7I6co3OwwuQ/51OY2gsspLqPsVzjkkE9qbFPACbSPoqlDPrNQGjqSxPkRHyb3IZ9ZcwehbYLJobgPeQK1vc7aXNyCQAKIHnAf8jnZXsVILp4m74aD7UM+pSOJ1o6kCGuTm2ZwjpLCQx6vtWeLI5ayQfyWGRwRijnu9SGPVdtyIMmabVDDHIxVwkSfcOtXHOWEh7wT2yieamdOyavowWnRu7Mlwgzgh94+5NHW9pmkykicoDeeoMHkni0RygTcAyZyENvB9yHv6khatoHv6MGZudZ/mvqLyAWR83G/D3mkQQJjsvzP61a40Hq4F0tE2NojWXJAhxzyqBhJqvzPaOmBtPTggPEez9hJ3o/H/T7kkXp7QNH6KMX2zLKDflc129VgPUxd33vvzfUoKDzkkSYJJhm2hRmC6zM4iynCKcOrIx/Fsoc8Dm0aDCRZYzzbIV7RVHbQlIiKGFMkckx+1BMe8jC2WSRr47t9fmYHp01uSpUtMnT95ZIy4Y8Q4CHv7EiKaLb9ELi5dx4zKxZgOaWpI55Ow2GRHPIomVFL9ZGhyQGXY495WJsiGlqMk2CfThc42D7kQQYJRAeSrNlmbnqyC2xm0GlHERS5ZMgWVbMH24c8zJHkpMx2MLhYOJkrGUc3jJ2QHg5P8pDHoJ0aSBLY29J2gauXwQn0Ly5yrad5H2wf8ihH8pRlGxzrxYly99wJBHIRFTlVSQ9HlOSQh6htBvxSyfayeZmxSqg1VsipUgg+2D7kQcY25LAM2PYUNzHBPEAZiz0ZMT/kkLsKY27UumBvq9KSiztFTeZpZuKhGu5jruAhD3IkVwNJAraHlXU+ugV9VJnckXH0KbkebB/yIEcyi/Ypsp374BZNMWuxsKGrMknGI+F+yO0ATjUoslzWRse3I6reKeXuke6pEeHAAdewzT8D2wCi3MsROCZPfEiTGqVoYlD0AfuYGbMERS6uFqY1Zgnmh94+5BFSVLVj1I5ZTG5CkZnLIGzusubGw8e+I6ZnOa4MhAJP/NZWWZaI1T+x1BlQljkQqv/urYsQvPxaye9f5iA/5j9vl98vP25gUXORLQGU18BJtlf3WbQqjBEbA2relQ/NNjhOLg9lGBbCH+II3Xs5//SjNFToeYSIITBfHO9PZbZp7MaTWNu70Nx9KXMzfHSbRLgOHcaYuDL/jKcho9G3Sv53N3zN5pNouin/F5HsP1bI/vdfJlsiQWVGEeCaqAaNvTBL6UiYi+H5Aw4fmmnRUZEsHng7XS59hwZpSHj3mM6/1McERf7qckHi46LpFGbSIPzAZZb1bRdfyOdf84+I5h916ZnoBenjMh/Q/4uum4YtC1D3E/38Kf+7CPrZqZsgjvRzu6Cf0p7Z88AGaXZEOhzTfWTl9q95OXN6cAB5o9CykRdy1wLXPcGM+TIHPhbLvWYVPnLfO6+5kQnjbPbmx+jvcqCVzhHRpWcTrv/ueSHqR3kZdWso/r6W+W+5YvPf79++b5dv3/837LdIDKTIVzaIXk+b2F7A8ZPs3GRwtM1N3jUrSdvvFa5ElHSwn23pqCTZnrlZvacJZ4YqbTHgrSeAqwKbMkTw/dtakAl5/f3WJDvZni96TPSmF7M2ZheQ+JvNglJusFHFbHlKQMUdFHdzDmB+W+trYrzLgHa2IRmFjYwUzent2bgZt59DXzG8Dtgf9N/HY9sLhJApMBJrotF8sSD8EazUHe7ao6VoKq8+xLQ0uB/XtOvaXNX5V8Z+C5id98uASTvbOOHE+2xDytpTZZWz6cxODYYRL5sl4jRibH83iu+d2HZJw8iJ5/mDhyvavwS2g6urnOGuZLCDHgpRxXsWAcr1nUhlspVuttmsIH546PZs48id4umS4fnJ0ga2azYLYL/Rryjbk/YF38cm8ZUoW8Zfs/nPp01si+E7OJHBcbRxYTHo7xmwVcsy4pt71jbV6C5vKSyq4tzOdmKhI12YJorTSzDServFMJJw0/xAdfYL/fobgfv78H5sr5/YaAyL2odpWxuFWuiJ6wg6GRwyGwKgdAcixSLAu4VJQBfabq/GYoXgTsoVuRHbpK5lerY6yO3ZFpGr/Do3s/0SZVuc4PuwDRSGPhL1YKjUR7aOajBVCnvhrka0Zk2ngikyP1RKBW3RqSxMJOfdeplzUXDTTXRDIbZTkbJtZTvzu6tRF3F6d7N9YjQ7Iwz984Je/o2xLbj+M9/z761sN8e3Y1YgoXIdrX6YxhgzChmDHwiUj4WAcntEGoK8axEgpaxXHtKmaExuL+Sai9lQvL5Oi6Vnw3TOgOcM2+e9bJ/GfOD0nz/oR4xt9IJ+z/+NO5o1bOM9bJPYDaXiNWWk0haT2piZ++ZPJ1ba/6Lz+VARVNzI9jANkavKBIX6XqkyvGn+fSMW1g1rY/utxLZThnZftkl+0FeSbbST7X8b2fYLmk5uc7p0A+su+qxtMXpZYoLM/Q7oL1fZ7S5TwsWbu6GYZF4FRNRjvF5nG/2qZMxFrJaAJzljGduqD7CwJiYc92MireoyM9Pr6tepxTtbF7ahme38NhYJtr//fEG/BNs/H8223/vlXogMlNbdBtUIDLBohNjkbaitKdxUBMicZ4VkVkVULGVSP+YMRFnTNG0xSxhvo+JyZ7YJBwYPYFuammnN/c8P9APH2P4zs/1rJ9t/mvR26nZjqH4So7RH3CBVLBwKTamg8gWAnVFlavEE3DmnXpwCwQPnaMJbeiC6ZrbN5bT4otci211QthJzC27BtnbDMmz/L8M2ejDbgSPpZZO76soD1QzpHSgYAwi6Np5uTQXVyDR1PTFo464TowZzipuKujCCVWAf43q2R9Jqp1rPoL8D20HxTTz9adgG1OQQ25KUJraFN4nQt0a2//6H5LuxuZDE8yzw2dW91Um0MSjVztU68RoYtk8C5IJrXfZd82npLsvFZoM7Oe5Yy/V3tLHN5N281OmCePpTG8v72GaIPp7tb9//Q/L3N5fCYd8W4A0XTkY2L+6krHoppPDwy49apqXJQd4XXqzoAcO2fiO36O1r61rO78v2qaNeSdbd2B5RJsZ9P7ZRA9srx4412ZQkcjdj8SLht15Siel1mmFL4Jkqbi5ct56njG1ZWzuq8PpFAvEQtpd2pvuwLUK2q3zCHWyS7Ga2H4rtdbxVVAxs19w4crtIpOqVpUKr8y1zQxAthVKiNYQtBfiZi15WGFm04hW/NLE9m/iMye5b1iU2ukIWvU1FhNVsn/DghVzvxXa2YqrEtvinVePB+uPf//79639CsP3S4EiGWQC2vRyI4Fg2mIR9xenaFFkIOja7knZREA8tF2GRtqKzLpGtm45E4eo751Ucosueo1ZjbPc5uWhHssD2BDvZDr6W3J5tKbJLzAiOVJh8/4lsXbDz4e2+5LDmUfQibIQ7rqwCnxqSQQJV4+xEptoKpUDGLF0FFhouizliI0GbTJ/o+YsUqts/G4O7wDarfHcvdQq1ie0+EiaNfw1tYjsq53/jBsgtJAzyydg8ha2xLpIqESqVrTjWNTjPo3kS4ECyGU3gwRlsS7nH2ZaZTck1ZNlmd2XbjUvdhO14peYnYruLudKiLYWd9osfjWM0VaPZm0dHKmtyMuWAl0TDvZoosjKJpM593cn24Jhesxc7bWd7/MXS42+YbjIvsH1aBvi3se3P3GGJRWoP27NZ8nsWM1Pnx684279efv1xJu/8/o1+bzVIIslvZX9CZRB6k99Bk8a2nvfDlmYt0si2Kn/pBxQOi1F08Os62tgPwPbq7aG8mBfYrsrCltjGtry6kW3vntO44/wIvf1rv86O5F6VDwfNueXgPjjLpGhZuCaL2IxmpWRXgasqjUkEEPU2lqKIJDT1hz1sr5JFsREJBbaz2b5atgkH+hRsz+r9n329JwiG1Q1QMNKmgp54tsy5VXE/8kLtfiE2atM6LU2YvFfT8+qaI8z0rMgaqt5Nus6XzM+o8l2Ksj0Fv51jm8VTm+wmbDOnWeoWbI/vxvbvvWyv+++IYr6q4qNKkDEB56OOqYSdmcHIbNlW8yRA1cMtHrJvZ4vWX/EeyWidOpF+mlQsms8OJt/B9ikskn0vtk9XONg2FsmYMJCB3whtp9w3tecCHqhnkwvDYdaErK3phlFZZUvDzVpHsvisfPmzpHC2iarZjq5nobH8bmwTrrOxX5xtYJFt1GVCFVqL3eLZOOO1vsWjf8MKqvmv27e6BiZ8CBkGFC2TdEnWvJkmBPniXulSMcV2sh2ebexDb/QBbNvpL/H2ni/DNo2FL7tBBBRaqjBTNQ7yPqQznaHxoYYnkb3jzNwxmVwla0g/CLXOkBxIqyyh+SGLGOg4VTf5lPU2FPX29X5sO03BX5ltxmg02UKbpsMkA64sm2qfmVrPID3jHVum6vxQLye7vwJQlayRtS0M7AKCubSElINL8Lm2fCXK9hDc2HmdCAWboX331dunZW7f12VbXCKJhqLoMN0ObTtmB6f8SBQpmBSRrObRJEzFY9QYbNOO05t494tqezHV4eZNgKmDZraJcBk8tqELZXJenv6ObBM7kuLLsp2o7CAydXerGElnjb8hjXaTfpabcUgY5v8NRpGYR/JGVKuCNEdAV1LpfpQlAK4Gs1xUmas+qCoLiW8VEH3vN0Z17sn2adTDX76uL5mo7MDFPSQ3JSWZga5LVhxH79KuHSh03mnm+s19GqDDgdI4QpNJ4Cnz9zIItlmrTTKzLXa3qX1P78o2HuBLx0kgtbiKKEkhIVk9nJeY6oZk2CW6+4he1XM624k2L28DhL6cCQMRibWJ+8oV5G2ZlKZ7/GfrJTKcIGIuTfHyocGmjsQyIiYRyzCNKwW2ExIuSZeyRtEZiq/LNk8WghXQ7iqT8fIeK3gTO+U494hWbxaktrRAXMwiufYEXcdx5IML4syV3Jl1HJXZzW01iS0lwLBKYM3m+TTIo6L+ouabqA2ZaFXdJ6Yb1pp71QH6YcDpy7I9pjLkxS1o6uZHk2U8ICRDJG3+InDrIuqVBHcuWbPWZ3qBke8BgyDt7/YjCKf1bMpM3BN9m3+OdKUlw6Py5Vj8WUbT8yPuy/YMMNPFvl+SbYjHLXpWytrI5qsazd2n8/qL/wVujV6t1j4jkipXAss20cyDq9BBj4bzo+fpgbKI4NV4+0zof7bwZ3U/cj7YHGlcmccOcbnGhYNfSVlmW7T3wZdlO1kuMpZ6yQhnwFB5Nz45sFjvTBV/E5z6IhG/GDkUQybyiY2pTidyNfFE8+h6DRks1rNcQi5+qiU3456oCAtUsW0Jxzy5b2qS7SSofDPboqzy6+YlAVImMi7faIDyVCIn9XtOGKjgbHtDe1JXsA25d09qabZ86yhq+n3NKZ/VqqWHZqystz44q0sdk4TgpD96Z7ZPqlDsK7JNUYpNcs6Phia2NrgQJzQVVzNp6Z47Ux+oDfIeFVoEwly2yfit3VedvpH/SFYTVFdBda/xfnXQ+a54jsG1vnbd+KMQpJbGO7Pd86/KNsCQmBWPC2jzZaearFlCukGCS2li9p2F0E6it0mHytgOufQ64Sf6se1+I7MFwWS0j3tfpnZ50ZZYh2zdoZpUcllo7Ht70MuyQ4/H16a5UmQ9JPYBbKvG6i/INqQH93e4UPdkQsuMZg3zpbUpYZ1iF2K7BtBc3MSrtiL+5kVOF2avjuwZ0BaPKXQkwftdbz8x5EzJIi6gW2emkW6VFLq3TaIc+S8Y307vFUnyaRnX28vugUOWD/UpR5NZrb1o9kKdqTVISEdX2xaP7iydIAikNotBasMDb2O/YO5sHx7V0P2GllPb3Gsn3VHazDZqYFsGOb8c27Ob0dh34OekM4PVesWBoCnZQ2ajfl4UpRsSbEvbwTwNubm5jB9LUQXa86v2pknSFa3EJlEl21S3YvZOS7oTISHa5KfqsFQVqwwdWiKW6vfYsL3aZqS+6t6jt/uaTLHsCPlybLfsIBctRk1u12W2AknalTpEFVoTp8wMQDdK3vsZduVBUEcDv+kiQGIaIs2uVNfTqn9+sA8dk9WcNunb9sGptW2pe1+2cdTrvwnbb5+I7fQU1ZoqBSeilUzKcLujzZQMbMPa2DXWDE3lmnRF36jfm7ViX/Kls9FCQRxbsa2zRPI5OYP/ZtxfiD0nQYLd1sS9YQZu3WbbNkqvAzcWeGO2+4jDzm/kS34ittNTVCs8b3ArmWQwgqRNF5ayWZwesvUkni5X2WdUcDQr4hTt6pEKZ822/FE3GRHH6gG77aC4OvlnDH5tksDZuLq9/Ye2PfTgbmxfIn8prrn/cmy37bJlMi0AnK+Ic+/pZJRqOdUegSReCE0NYJnbKmKJ2qF8kyWnatMPIn+J6SAJ8ifm2e2cxE/aYgndVHvHzMrVNrqFTE4F7M3ZXqtoYgdVfBF7OzqQpMpeVEuqcNywnbAqM+Ak/iRmtLrko7K1HXjtDa0DZjI4jZX+uAKKjzUHL3MujGqTvjnJTl29Te5s0NjyWcuJTiCaUfPJkGlvk54NFe7egK2bsx0Jtfboq7Hd5kj2i/fHifqR6voOvoq26S7EMRWcsoXTYO8v6bELN6yLFonxkOK9DEqfktNb78TARLhMuFlElP3LdJWXkQQ02eiMXWeC3b7URZqhPXpJEgGg7XfR3R/l1vZ2bBOeC0TChc/Ltli2r41oe7l2G58O7rVWTuJ7aCIa5g5jhCX0sRgwZNUpaW/xbGv4trZb8cQkya4qFn+DJ90nJ1btN9GSQkNXWM4IFz8i4l5BJB9qSmCg3MCRCDnfjW2OIsbfV2K7cchfDzb8Zda+fpk64oz4k6YA5Oab6EYbKra9mzHDuhrJKyePZHB0jcAlgE5EoXUhn6RP1ErpC8TC+BBsY91305/83aHsEOa3ySj+M9FXti695jZUYgsSu62zAPD94iTRpj3ypXLu0LSzoXDFjAXSObzL5+9ZzSOUG230BzAhfafTh3JeA7iZb6CxN3K1g6LDHjF9Xfo1IAJPy7Y6ce+ZzG8F98OOomPS2SqPeq4s0efPlmrbCZNNd1OULMDd2IZI1PvrsC13f2xAW29CIJgcIzHBF5vhXhptEt+jKv3AWCzLpEkBolPW4Y/BsZl7NAG8uubI7NnyruOId8SckSFWtLHARcdJqFLRQdZTmyTWDuYy24MwpyALY92B2jp0HkRxzOiTarZzc1z3sr0+kS/ENm1ygWw+DnyHxVWiavFbGntTAxsmk4t3D2Rsd2dJ6QOtiUydIHjzKzVYqgpG7VwA1Gy57XSyEeVAB47kajHgeLieTI1ruAmVOjvCw4bkgY/jta9T4KyJbVKulRIBnIgDkNnz+snYrmuXiQY2VDoy2MicLKWisiZEZCeorqBN1bXq+Ju3HdmgdhdzHzjpgLn1TOp5inAHdQtFnf2YLuOiURXxXdcvha9EB3wjbC+D5TlWcULRizlbTKNXUqXOjoy+2rYbtOMa/V3Q26tJVKS2DrAP7l/maW5mm3wGttsmoRkjka3H58gUITJZaILUNNZ0ql3X3/mldwo5GqwK9tAaLGMYO2yDswaJxCNdJiWQ0No0pg9EFgNm/dPhzKVH2p1npU1mB3cZJGGHrI9JzTG7tdwZYxVnO9sLbLfisDVg4pi8YoZDX10U/qRss5aMpAwxqOlN634GZ3DOkqxMVtD2Zj+G8B1Rd4oxd17y0oMjfkHlTtCymQv1FhE1G20Rh23i1pnSGNtOf9mApa6cVQATf1yK0JfF+RpZDpcNoIdZhI1yye3pc4c+9z633crzsz2jQrvNaF/MwiyGn5LYvwYBDdFKmS3ZjvXd9jpUTn0dR4PuAWdx9rXUzLbwKCVbiHN1fITdzjDCE5AsZYHy3ZdszwaJDIJwt8lNXf41qbZ1Uaw2i1JRoqzeZusdnFhQu5VhG2pqb5/S3o7CWWEhMhMjobEKK2oCFmBLLVJ7I9jwYMRikd22TprSDUVLtt+CQpRgzK8Y1bBs7qhi8F7XI8E0aApmK7ZlPJwQaf/I6LWziQ2U2A5Rj3ocS7nZjWemSbYZgq/JdmJbuFL4SVejJpPMTsjWrvQkkdlkWjmTRARlvt/Yy6pR87oMesZwkm3PDYt6FSr24fehkYBtkcckpi6KzMvLsvGkxzZEZAkWqu3ypsezXVUF95RspxoJ8qVrOvrHksVBYVwtkffUQYd0J47Ou0Remyq2a99V95ms2aaXpauOAF8a5Lfq7cRko27I29v72J7fq3LS+RnZZhQuDWibVHs6vkReE926wRvA9J6VyYFjOPzXK5hZu0WbJIUycdT22wlJmz/JtlxS3kx4hQzc6W7fapPEp43ju7KNana7uA3b/Qdiu6lwjXSl8TnmgUH+kSp9CZkNr20c11M86g7W2dtK5lXZWtmqLwGp3gTciX8Oh8f7bMvB3ASfZRRP/n+HovY2rKfGTx+BbVYRKnlCtmmDReLU+uVMdWInVtJMNwIVlaN0yFqEM2ZecmleN2gQJ2HROMlJRkjmV4NLwXZ/VNk0KXxCJSjvSwLwfv4F1PUz1vN3zt9HWVBle5VmVygId6i8v+S92YaKTQGeziYB1FAj1TPH3i0l5cOiqZhNXj4LcvXCgHqrsRjbVBZrJwJ8en/Kaeg1312kJJZqve3Et8WxVbb9jLuRyKFukfh2fItz7j/u4V1sEjTUsI2eKb5Nq2fYObFrMwen3Dushlay1OfkjjaqE6doIzO/4ueqlaEp5gDmlKhaK4sE9/lsy5o6pbUT98TmbthSG0hnJcxUaNwd4cacvGR8tnzIdvcebNOiDiuxjT6X3maijqbF2DZd7V35wwNND2xQc2/SnTjeG9V7BrkadGKLOdx6EnE4PdFV6VcbjWNYKmSRz5n/ex3je+vZ4kK3OFCYHr222Xu3Q8GtJ4nqbW8HP0Dxm9bdn230tdgGuj1rI/bd0q2BNb+sNDdJpX9oLqmTrcuUNYjJOkAk91NTufGlj1Kfr3QuJ8task3DRoPkw5RFN2J3y85NCNqMk3hRy2yj92K73IL/bHqbbXYk35y61qr3ok+6MbrwtXGnYSKawCyGeFptljQf1MzLgVdwTE6xMypATZwudPpF+jzodacMllBNkm30/mzTUhjwudimDe2/aFiayOq6GfouNavexBrahllpP3SI9d2o9h7Xnh66znR6EUcTx8OiTGNAULCn77rvxpaZcfTR2S4Yfs/GNpDtQFHY2F8ZL+1cRoUNjVtWjiD2adAw+P2SANwWfbyK4N8wmSJAkQqi/tZgkU4NRoJUuEmb+3seLOaz7Jcss/1u9nZFUGtjnIRdPy7bYmzHVqqIHRXMUNtUzFVmsxltObJ1CUU5fe4ymmv3JkBY7qEHxt4k54p8FifRGEd65ZN97jV6Oz4Ps1AHmJi84i0oRbZp/pFpAy7JNvhs04+st2u27wiF6yGPMt67C23TRByZjVZ/EAXXMm6BuqlCgqeuQ9M0Sb1tQ+yiPAVKW+LZebZdflNfZqpD1HySFNtO4VRiG+QS2zvrt71Gjka2w8FH8WD+h2AbGgaSdDqum6mQqvRIO6hItZetElmJoo9whcW0VCbJGWN0NjlvE4vBQ8VW2iY1mZ4ea+4h9uZK9fGCAdFBrBtnKGurA7wB2zRfXbGJ7VQd0Ydhe+tAErxMWYV927qbyiRqDNtGubrNPM5jFN3nGE8DrL1mXqkDvSlUyVeA+vMAL4nH7bmSZLPe7oa0IFMwkOxzp6s3sYVtYr9OytSTXPLjvdmetqOt2nBntT2QDW5jMtUOe/eHJ9wZZL/szC6DL3xwrC97whjVbKw+a1i+wJ2wdimzXRkGzWv8JJdGR2cThw1sE9xlRaZ3i2wnN8+qYxu7J5FqcP4YbCMzI3Kz95f2uAnGlUS+FOpaN5jczJrsZJkCrvcxQKZ/3X5kQlXbT1OrklVb24puaZwZtImZrX9NRYpMOWLq5c/3SxbvwlCjt1M1IHVsb0tavyfbQLeWthJrcDGUcEoILVebCRnMyvHSkb1sKx8OL3c2TK6IbRMWtDuEqrdWn4jzUq820WFLunWJvFxbr2PcxbaYRlvBdj4MeBO28fQB2GZbB5I4k/9S3epjVR5GF38DQmjai7YKjyyP7M3sd6PmHejtbia7cU3FBsNrP3F+rfVBtVmh2teH/mIzpDYX2s4228F2z1TjWF9KucDd2R4yXu+N2EZ5trc7kv1S1Znay4bLTF8Rbqz2l2ww+FOZe7eLmODVPmV28uQmre0pObLaex1Ge1Qn8rKD7Za5Us6CSctxktXAgDuwnc0yPUZvs633sF/nNUKRaZ35ygrFIabUmrUnbVaRcq/03u/rnbl7q4lPReF2LCwc3HTn66AQA6mEcw/bUMk2ZMY+FnoTPg7b/+UioqIyrt8KkB08nJh6ppppAVAebqLTP7Dfj/QyODOH1jUml77vkdrA921pjBzBKYSthHu5WHFQsy/wxdkXuHNbnnkr2/v0tkyKVrKdfP1uwbbIW7P72yQ5tLcOJCHGjkCQykdiE4Cg+Y3olq728XQj0XkPv1cr3Hjd3Up7i/D1fu7hQu4+zMZCBMwLmyUXHg+oWvYi27lO6ZuwDYhm2P6DfuA427+2sD3k9BHbuHaaEWGQdEacogl/wlmYbFFJG9pW15pUenICEGRKCMQIHrSdbFRodgsyOyxjzuZrGWwfT9MU9Akl2b6s2B7f7sZ2Posr2f43xvZLim0UY/t/ww2NbbLUtaaif4MXXkxWhXfLhPmboW329hWuXJ9KKXUcoQa2ZQNGn1zFx3DfMkabLsspYmxhW0Vnq9ie73/qzt+C7SFb1JViG92MbXF5W/WiiWwA7ysi9snRmcSOfrgl2mZwjtqqN7LJM+kmk23ZLHI/nNgQbbG5Q5jTaS2PcQyHltjRtZ7tTN2lYbuh8rnSWU+w/W0m+/cWtqdc+d+mB0AoWGMb8HoONCFhJWhqFvHyCtwmRBKGr+R3cz/5J3vZm4wR94KGc5BRJBhHSsCFI3NpYYLajO8etmM6f8V2WvHsZnuEAtu/0EuUbRZl+wdC//u7iW2pfcdrvYzWB5O/GREemLLAou440XruxhaJJI2bSbBiuwIxC1hI31/nk7P9Bo2iDzqKg8q8+XxL5sMOsXZL2hTnsM4KNO0rbPvxzzVs06RdadluM6xEkCTvrAu2/8bY/hH9uIiqbGS78ekW7dKwu4RE0Jb/Isoa+tuK2RIdgEarrHcp7ldnONY0TAZERiG2dfy0eUnC7p7XjWxTSBSGX8Ky66TdpB3BZrYJLlYO/0a/Iminonp/EMS0/Pd/lU5/N1nP0vZ3AgMKNxTaZkvfQ7bv9+aPB2phe9zCdrIpeCfbBA8l20+cSJTtKerov8QtGMn2S6ZSaov4+zYuu1I4G1VEFXkfr0e5P17y5GTRhzi7m3zrUkYiDspost9yczUDGb37gm/M9gnFtpslyQxQM9tdueeD/UE8yna8X+QlbsF8+5tl+zGa25s5bOasufjdTuKkwR20cs1HtpglZGTMKdSDln2HkGI7WoNJpmyhTMC23IClJUifbeFw70wMVhTZEneWhHUuTZj3ZRt5fWeXqraoZ5GhNjFF8OhmS9tUphrPlYqr4nU6NjGVRlZcCbbZ1hNYBfqTiiFmZHz7RqJO3a/5P7FPf/+JkjHDx5ncds9rgh9lkHwQ4X1FLJD0wULeFn7Ls414hO3oRy3baMuXny69TB9UBRy6f78j+R9P0L88zvast2OC3p1tUfFqHhWeKP1KaItFqrDvNcF4YsELH0sglEWGEKVNEv3XNduJr9E2iVg8ar8Z4/NQvR7Lzaf/LvKvEPkHHDX3/sy+pPmYFvV73fsrymWLvLg99byiE1R8HLs4q9hGyGnwezBuFm7TVonkQ+T0Yp/VaQpRxlb5xXxwGpHrChj+iwlPfP7lJfrxHx+BJj19hHD01QRMdGkSgsLNFIa9CaWPtER9sSXZdclJEOU65JBniRmchy+KNtB0LTNLxi0bAqDZ3wVU+zXOLM/q0OvWjC/8isgLZD/+YkV//McHeb46nP2FX+7MnpOHPIlrdcghhxxyyCGHHHLIIYcccsghhxxyyCGHHHLIIYc8sQClR3bnkFpavP+r/4VDDjlk/XYc6fVH3N/CX31ibqy8PtFT40rgWDwOqbEvDC6VvAycd+rzu9+/zb846J1xDrYrbu9rSZc/gd4u7JqrcanqRZLdQurzrd1CgBifv01959YK34PtqsWtw/I/1Jt/oW759JkvrNMXYWT+STSyvKZIe93E9usN2EbLCW690wfbW+7vss8iAmz/Dj4x2hHpMmybq+YPYts/RzjYvrG8LndpGtqe8geVIcp2+pqWq+4exvbknNfrYZPcwygJn7q5b7ldFT6p3hZXmYIBNtrbaDfbZ+e8qpZI4zZAme3Avyh7HIFnAsUT2eKYAdoSr/I/vef1tc90MAt2aKUUvhvK98E5v7JX592427OdmtkPy9bQdZGNCrYhTYxj+mE5wWPTK3Lo7TqL26iPs2DbscA/732DNNs3XIz26e2AbTzUXJT98/3Zrjjua+XHE1NO67+5VcW5MEt9NCw3u/aQd4gW7pon7LA9yC0ghCwRieazfd3INtTo3qnqFVni77MMeb0tpvvrz5nfhWKuZ+CuZM7eHt09o9Iy4x2cl95jvvo4tHJgLG6EXrwwb/ImB6eauw+v3MmIhDc9fWHLl8A+tldGypS+DaXcDfgPswLK18wzHfSd1idWZBv4YsAU2fYWA0d9FY0cXFQB9ujgnNFU71loAyxjxoVL7nkH2+a6ONBykAR8/16+BlBeeLlmO2tdOudi70frQG7LNviPN812yZcE92HOF1Ri28Mx+HL3fHhF+gYSRlZKD3trCiCau3hA60eK7U6gRWOqYOvB+r3JvQuAoIscHJrptqESWB5x/LNi7uIUu8WlyNqa7fx9QKVD17Jt917osutRmW2xBZN/x4tKYP2UpiFYLbvSS2c+P+AtbA/uuVHzHV2t1taHZvVsi9N/LdgFNSceP3rzOD0vtMu7bEwqcaYdgmj4oZ1tvJdtntDbXcVNgC2qM812jJghOBh3fffc2nrewDZDoaHT5RHh+9nGt2F7CdPdhm2rs7pikCRxpinz7N3Z7lZsJ/Ep59yHTdmgOI48SNzwJc1Ecxca/+7EY/IsMOno4+1s88Sc/xTbyVOJqoT4DgouAMhZvNtzCK5S01c5pd+rVDJ7K9vwGL2tsgWLTdLKNqw8oiLbOMe28/PgLTF5+nQQvqT+WOe6YT9KZqt56lIKNpLDtnsu6d3CzbvbdWiyH09aYJO13oblXDhq3VDD9aOXurSCIdu59+EebOunCI3hQJ6Ik6BmX9J+oJPzhItsGxwVMZPLtndfzJ+nissxhktXUpaT+wHI6UpvkZPvRS3b3KOxxHbnpQrjK7dz4t5T28U2r9RF4ZmaU7k527tzLPqKBpsU3B8n8R/pUMu292PA9iTd84r0TcA2L7pk3MlZQGlhECEgbrIUbDnt7DPl/qnRgilXyfYSy2Ce39Cc74AA7qFo+O1kG5XY3j1onscN1DTbeZsEVmwXczcujixke1hSSzatlOuicUJZ86domW1qPkDtw2WV1t1yo7LP1JZTFN4cQ4zWMVwux0M8AXlzvb3yD6ZyNk2faSPbU5Ft2NsfkWC7S3pI9WzLs4JifJsnnpK8TG8hr/CYHJjBsY+SbL/CoqXMUguoVMcjU0pQaZMgsb3ycl+SW34M9TVoDttcPv3hBmyDF3rJeezumQK6G9t8byKfJwMLTTWuO/S2fEqvg8e2z/257DEFbA/VobRhCW4DylTgTbEFrqC3A7bZLdkObeRdmzN2FfnW9Zl+NrZRY/12A9soFSdxfHfRcMk7pxLzVmy7y0pB98lykw4/iu3cenwXtt3ERJd144IzPTez/fp4trtu+mBsr9+8OrZ5me0wOVRjzdf4XGm24WPqbTf6lg+U30xv35ntbhM6D2WbJdlO43cDttOPfjkdNPGBt7K9xSbZrLf3CIS+zye3tzsnBsjLt6jE9ut2todEkgslHiAOGrJ3sW3vQGfc1qFsa6vwBbo/20NZb6MJiTR5ezFoLGpUiCy7Z/r68dlWYL4r2wJn2dCzPKVEfDIda3ADirV6Wz+ac3ap9JJS2hy+K9swyEzWUGS7oOK3hUqgXFz7iXzJbumwAOsVDM1so3a2V7YNA5wJvpeDLmhZiTJ6m/pWdK4q3fGzYSvbr9Vs+zm0oS6+jW5jk2xje2t8W7ULvgPbzK2XgXJVcpltHd/eyvaE7FPyywqcApGh5O2hurzkOmeBipa5jWhvYZs51Q1Fve1e+1Snt6saNzaxXeVLbs1LOh8v59xvZ5OwcoFrm96urZXy0uSdcxecx1u0mrxgeZXeXvKdxSiFa7/ZYxfvFEgDCqrZBmnFZnv7VmxDd1O9PaENcRKorZXqZKJxwrU1rjdme7oB28hJjfsOapXeXupwhkjBdlPQpdQLfA5c2EKaB0/TGRWT0z7bzGE75iu8uqNinK9KWgcWEafA7FE2iRO+QhtqXKsa5u7EtpcIfH1NxLfL9duNNa6qDHCB195B5swonqxHkFjPzpvZdpsjMgHiVNytju1ifPs1FT1PFOemehPo3dlO9SYkc1joI7CNagrnyvXbt+pNWJ8LK3frTg1sL3ooP8w4OoSrmJdU5bPI+7Ga7c09ZfBebGfihtPH0ts8WU/iNB/dpKcs/i44bMePDZuURDXb25O4iTBdwDaDAtso1Y2JNrC9NwZYa5PEluZMr3cUiIfrba9+G5rYRpvZRvFM9mD7P+wlFiM5sHSyqgDLNra7nNqT9STLoflQzXbgSwKqhTvj98Dr6kXr9s5crWUbIisYT87KAeT25Hfm+TyebTdUAk2+pJi14uLFy7N31hVIU7w21il0rVF/54pPB0GH0s2cnJfv5myHi3cBsW2fvqneXhmSpVFNrgPxXva2O8Ohje1gzXqtmb0TmWiD/h9CLNbrlTXxtAAAAABJRU5ErkJggg==" alt="Send It — Advance Your Ride" width="731" height="200"></div>
-      <div class="readout"><div id="speed">0.0</div><div class="unit" id="unit">km/h</div></div>
-      <div class="rail">
-        <div class="segs" id="segs"></div><div id="peak"></div>
+      <div class="gaugerow">
+        <div class="vrail">
+          <div class="vscale" id="rt4">60</div>
+          <div class="segwrap"><div class="segs" id="segs"></div><div id="peak"></div></div>
+          <div class="vscale" id="rt0">0</div>
+        </div>
+        <div class="speedblock">
+          <div class="readout"><div id="speed">0.0</div></div>
+          <div class="unit" id="unit">km/h</div>
+          <div class="peaklab">Peak <b id="max">0.0</b></div>
+        </div>
       </div>
-      <div class="railtags"><span id="rt0">0</span><span id="rt1">15</span><span id="rt2">30</span><span id="rt3">45</span><span id="rt4">60</span></div>
-      <div class="airline" id="airline">
-        <div class="airk" id="airk">Last air</div>
-        <div class="airv" id="airv">—</div>
-        <div class="airsub" id="airsub">0 airs</div>
+      <div class="clockcell">
+        <div class="k">Clock</div>
+        <div class="v" id="clock">&mdash;</div>
       </div>
     </div>
+
     <div class="colb">
-      <div class="stats">
-        <div class="cell"><div class="k">Time</div><div class="v" id="time">0:00:00</div></div>
-        <div class="cell"><div class="k" id="lab-dist">Distance</div><div class="v" id="dist">0.00</div></div>
-        <div class="cell sm"><div class="k" id="lab-avg">Avg speed</div><div class="v" id="avg">0.0</div></div>
-        <div class="cell sm"><div class="k" id="lab-max">Peak</div><div class="v" id="max">0.0</div></div>
+      <div class="cell air" id="airline">
+        <div class="k" id="airk">Last air</div>
+        <div class="v" id="airv">&mdash;</div>
+        <div class="sub" id="airsub">0 airs</div>
       </div>
-      <div class="controls">
-        <button class="btn primary" id="btn-go">Start ride</button>
-        <button class="btn ghost" id="btn-stop" disabled>Finish</button>
-      </div>
+      <div class="cell"><div class="k">Time</div><div class="v" id="time">0:00:00</div></div>
+      <div class="cell"><div class="k" id="lab-dist">Distance</div><div class="v" id="dist">0.00</div></div>
+      <div class="cell sm"><div class="k" id="lab-avg">Avg speed</div><div class="v" id="avg">0.0</div></div>
     </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn ghost" id="btn-stop" disabled>Finish</button>
+    <button class="btn primary" id="btn-go">Start ride</button>
   </div>
 </section>
 
 <div id="shield"></div>
 <div id="lockmsg">Locked — press and hold to unlock</div>
+<div class="edge r" id="edge-r"></div>
+
+<!-- ================= MAP / BREADCRUMB ================= -->
+<section id="s-map" class="screen">
+  <div class="head"><h1 id="map-title">Track</h1><button class="chip" id="btn-back3">Close</button></div>
+  <div id="mapwrap">
+    <canvas id="mapcv"></canvas>
+    <div class="maphint" id="maphint">Drag to pan · pinch to zoom</div>
+  </div>
+  <div class="legend"><span>Slow</span><span class="ramp"></span><span>Fast</span>
+    <span style="color:var(--amber)">● air</span><span>┄ gap</span></div>
+  <div class="mapbar">
+    <button id="map-fit">Fit</button>
+    <button id="map-base" class="sel">Basemap</button>
+    <button id="map-gpx">GPX</button>
+  </div>
+</section>
+
+<!-- ================= RESUME SHEET ================= -->
+<section id="sheet-resume" class="sheet">
+  <div class="head"><h1>Ride still going</h1></div>
+  <div class="body">
+    <div style="padding:0 16px;color:var(--grey);line-height:1.5">
+      The app was closed or put to sleep while this ride was recording. Nothing was lost —
+      it's paused and waiting for you.
+      <div style="color:var(--label);margin-top:12px;font-size:15px" id="resume-info"></div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn ghost" id="btn-resume-fin">Finish it</button>
+    <button class="btn primary" id="btn-resume">Resume ride</button>
+  </div>
+</section>
 
 <!-- ================= RIDES ================= -->
 <section id="s-list" class="screen">
@@ -224,8 +367,8 @@
       <div class="seg" id="seg-units"><button data-v="metric">km</button><button data-v="imperial">mi</button></div></div>
     <div class="set"><div class="lab">Keep screen on<span>Holds a wake lock while recording.</span></div>
       <div class="seg" id="seg-wake"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
-    <div class="set"><div class="lab">Auto-pause<span>Stops the clock below 2 km/h so queueing at the lip doesn't wreck your average.</span></div>
-      <div class="seg" id="seg-auto"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
+    <div class="set"><div class="lab">Keep recording in the background<span>Holds the app alive when you lock the screen or take a call, so Android can't kill the ride. Costs a little battery. Your ride is saved either way — this just keeps GPS running through the gap.</span></div>
+      <div class="seg" id="seg-bg"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
     <div class="set"><div class="lab">Refresh rate<span>Fast reads best on a jump run. Eco polls GPS half as often and roughly halves location power draw.</span></div>
       <div class="seg" id="seg-rate"><button data-v="fast">Fast</button><button data-v="eco">Eco</button></div></div>
     <div class="set"><div class="lab">Daylight theme<span>Black is dimmer and cheaper on an OLED screen. Switch to light only if you can't read it in direct sun.</span></div>
@@ -239,20 +382,60 @@
     <div class="set" style="display:block">
       <div class="lab" style="margin-bottom:12px">Export everything<span>One JSON file with every ride and jump. Keep a copy before you clear the app's data.</span></div>
       <button class="btn" style="min-height:52px" id="btn-dump">Export all rides</button>
+
+      <div class="lab" style="margin:22px 0 4px">Air test<span>Live accelerometer. Shake the phone or hop the bike with this open — the bar should drop into the green zone on every float. If your jumps are not registering, this tells you why.</span></div>
+      <button class="btn" style="min-height:48px" id="btn-airtest">Start air test</button>
+      <div id="airtest-box" hidden>
+        <div class="gbar"><div class="fill" id="g-fill"></div><div class="mark" id="g-mark"></div>
+          <div class="cap" id="g-cap">—</div></div>
+        <div class="airstate">
+          <div id="st-ground">Ground</div><div id="st-arming">Arming</div>
+          <div id="st-air">Air</div><div id="st-pending">Landing</div>
+        </div>
+        <div class="dlog" id="dlog"><div class="ln">No detections yet</div></div>
+      </div>
+      <div class="ver" id="verline">Send It —</div>
     </div>
   </div>
 </section>
 
-<!-- ================= SAVE SHEET ================= -->
-<section id="sheet-save" class="sheet">
-  <div class="head"><h1>Ride done</h1></div>
+<!-- ================= POST-RIDE SUMMARY ================= -->
+<section id="s-sum" class="screen">
+  <div class="head"><h1 id="sum-head">Ride done</h1><button class="chip" id="btn-sum-close" hidden>Close</button></div>
   <div class="body">
-    <div class="sum" id="save-sum"></div>
-    <div style="padding:0 16px"><input type="text" id="ride-name" placeholder="Name this ride" autocomplete="off"></div>
+
+    <div class="hero">
+      <input type="text" id="ride-name" placeholder="Name this ride" autocomplete="off">
+      <div class="hname" id="sum-name" hidden></div>
+      <div class="hwhen" id="sum-when"></div>
+    </div>
+
+    <div class="thumb" id="sum-thumb">
+      <canvas id="thumbcv"></canvas>
+      <div class="tap">Tap for full map</div>
+    </div>
+
+    <div class="big" id="sum-big"></div>
+
+    <div class="sect" id="sect-speed">Speed through the ride</div>
+    <div class="chartbox"><canvas id="spdcv"></canvas></div>
+    <div class="chartlab"><span id="spd-l">Start</span><span id="spd-r">Finish</span></div>
+
+    <div class="sect" id="sect-airs">Airs</div>
+    <div id="sum-jumps"></div>
+
+    <div class="note" id="sum-note"></div>
   </div>
-  <div class="controls">
-    <button class="btn ghost" id="btn-discard">Hold to discard</button>
+  <!-- Save on the left, discard on the right. Finish sits on the left of the ride
+       screen, so a press that carries through from it lands on Save, never Discard. -->
+  <div class="controls" id="sum-controls">
     <button class="btn primary" id="btn-save">Save ride</button>
+    <button class="btn ghost" id="btn-discard">Hold to discard</button>
+  </div>
+  <div class="controls" id="sum-controls-saved" hidden>
+    <button class="btn ghost" id="btn-sum-gpx">GPX</button>
+    <button class="btn ghost" id="btn-sum-csv">CSV</button>
+    <button class="btn primary" id="btn-sum-done">Done</button>
   </div>
 </section>
 
@@ -279,6 +462,48 @@ var S = {
   async del(k){ try{ if(window.storage){ await window.storage.delete(k,false); return; } localStorage.removeItem(k); }catch(e){} }
 };
 
+/* ---------------- IndexedDB: the crash-safe half of storage ----------------
+   localStorage is synchronous, small (~5MB) and all-or-nothing. Track points and the
+   live ride journal live here instead so a ride survives the tab being killed and so
+   the ride ceiling is thousands, not sixteen. */
+var IDB = (function(){
+  var dbP=null;
+  function open(){
+    if(dbP) return dbP;
+    dbP = new Promise(function(res,rej){
+      if(!window.indexedDB){ rej(new Error('no idb')); return; }
+      var rq = indexedDB.open('sendit',2);
+      rq.onupgradeneeded = function(){
+        var db=rq.result;
+        if(!db.objectStoreNames.contains('kv'))    db.createObjectStore('kv');
+        if(!db.objectStoreNames.contains('trk'))   db.createObjectStore('trk');
+        if(!db.objectStoreNames.contains('live'))  db.createObjectStore('live');
+      };
+      rq.onsuccess=function(){ res(rq.result); };
+      rq.onerror  =function(){ rej(rq.error); };
+    });
+    return dbP;
+  }
+  function tx(store,mode,fn){
+    return open().then(function(db){
+      return new Promise(function(res,rej){
+        var t=db.transaction(store,mode), s=t.objectStore(store), out;
+        out = fn(s);
+        t.oncomplete=function(){ res(out && out.result!==undefined ? out.result : undefined); };
+        t.onerror   =function(){ rej(t.error); };
+        t.onabort   =function(){ rej(t.error); };
+      });
+    });
+  }
+  return {
+    ok:   function(){ return !!window.indexedDB; },
+    get:  function(store,k){ return tx(store,'readonly', function(s){ return s.get(k); }); },
+    set:  function(store,k,v){ return tx(store,'readwrite',function(s){ s.put(v,k); }); },
+    del:  function(store,k){ return tx(store,'readwrite',function(s){ s.delete(k); }); },
+    keys: function(store){ return tx(store,'readonly', function(s){ return s.getAllKeys(); }); }
+  };
+})();
+
 var $ = function(id){ return document.getElementById(id); };
 var toastT;
 function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('on');
@@ -296,7 +521,8 @@ function put(el,v){ if(el && el._v!==v){ el._v=v; el.textContent=v; } }
 function esc(s){ return String(s).replace(/[<>&"]/g,function(c){ return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'})[c]; }); }
 
 /* ---------------- settings ---------------- */
-var cfg = { units:'metric', wake:1, auto:1, rate:'fast', day:0, scale:60, acc:20, track:1,
+var APP_VERSION = 'v35';
+var cfg = { units:'metric', wake:1, bg:1, rate:'fast', day:0, scale:60, acc:20, track:1,
             air:1, sens:'med', minair:180 };
 var U = { spd:1, spdLab:'km/h', distLab:'km' };
 // freefall threshold in m/s^2 — total acceleration this low means the phone is unloaded
@@ -317,21 +543,16 @@ function drawRail(){
     box.innerHTML='';
     for(var i=0;i<SEGN;i++){
       var e=document.createElement('i');
-      if(i && i%(SEGN/4)===0) e.className='q';   // tick above each quarter
+      if(i && i%(SEGN/4)===0) e.className='q';   // tick beside each quarter
       box.appendChild(e);
     }
     segEls=box.children;
   }
-  // wedge: same height as before at 0, roughly double at full scale
-  var short = window.matchMedia('(max-height:660px)').matches;
-  var h0 = short?18:26, h1 = short?34:50;
-  box.style.height = h1+'px';
-  for(var k=0;k<SEGN;k++) segEls[k].style.height = Math.round(h0+(h1-h0)*(k/(SEGN-1)))+'px';
+  // Vertical wedge: narrow at the bottom, full width at the top, so the bar reads as
+  // a shape as well as a level. Widths are set once per scale change, not per frame.
+  for(var k=0;k<SEGN;k++) segEls[k].style.width = Math.round(52+38*(k/(SEGN-1)))+'%';
   var f=U.spd, sc=cfg.scale;
   put($('rt0'),'0');
-  put($('rt1'),String(Math.round(sc*0.25*f)));
-  put($('rt2'),String(Math.round(sc*0.50*f)));
-  put($('rt3'),String(Math.round(sc*0.75*f)));
   put($('rt4'),String(Math.round(sc*f)));
   lastLit=-1;                                    // force a full repaint after a scale change
 }
@@ -351,7 +572,7 @@ function seg(id,key,cast){
   });
 }
 function paintSeg(){
-  [['seg-units','units'],['seg-wake','wake'],['seg-auto','auto'],['seg-rate','rate'],
+  [['seg-units','units'],['seg-wake','wake'],['seg-bg','bg'],['seg-rate','rate'],
    ['seg-day','day'],['seg-track','track'],['seg-air','air'],['seg-sens','sens']]
   .forEach(function(p){
     $(p[0]).querySelectorAll('button').forEach(function(b){ b.classList.toggle('sel',String(cfg[p[1]])===b.dataset.v); });
@@ -372,10 +593,98 @@ function afterCfg(){
 function saveCfg(){ S.set('rm-cfg',cfg); }
 
 /* ---------------- ride state ---------------- */
-function blank(){ return { status:'idle',started:0,movingMs:0,totalMs:0,lastTick:0,dist:0,max:0,
-  speed:0,still:0,pts:[],jumps:[],bestAir:0,lastAir:0,last:null,fixes:0 }; }
+function blank(){ return {
+  status:'idle',
+  started:0,        // wall-clock ms at Start ride
+  pausedMs:0,       // total ms spent paused
+  pauseAt:0,        // wall-clock ms the current pause began (0 = not paused)
+  gapMs:0,          // time the app spent killed/frozen mid-ride, counted but not moving
+  movingMs:0, totalMs:0, dist:0, max:0,
+  speed:0, pts:[], jumps:[], bestAir:0, lastAir:0, last:null, fixes:0, endedAt:0 }; }
 var ride = blank();
 var geoId=null, tickId=null, wl=null, eco=0, flashT=0;
+
+/* ---------------- live ride journal ----------------
+   Everything below exists to answer one question: if Android kills this tab right now,
+   is the ride still on disk? Points are appended in batches; the header is rewritten on
+   a slow timer and flushed hard the instant the page is hidden, frozen or unloaded. */
+var COLD_GAP = 90*60*1000;      // beyond this, ask rather than auto-resume
+var JOURNAL_MS = 4000;          // header rewrite cadence while visible
+var PT_BATCH   = 8;             // points buffered before a disk write
+var ptBuf = [], ptSeq = 0, journalT = 0, journalDirty = false, restoring = false;
+
+function rideId(){ return 'r' + ride.started; }
+
+function headerOf(){
+  return { v:2, id:rideId(), status:ride.status, started:ride.started,
+    pausedMs:ride.pausedMs, pauseAt:ride.pauseAt, gapMs:ride.gapMs,
+    movingMs:ride.movingMs, totalMs:ride.totalMs,
+    dist:ride.dist, max:ride.max, fixes:ride.fixes,
+    jumps:ride.jumps, bestAir:ride.bestAir, lastAir:ride.lastAir,
+    last:ride.last, ptSeq:ptSeq, stamp:Date.now() };
+}
+
+function flushPts(){
+  if(!ptBuf.length || !IDB.ok()) return Promise.resolve();
+  var chunk = ptBuf; ptBuf = [];
+  var key = rideId() + ':' + String(ptSeq++).padStart(6,'0');
+  return IDB.set('trk', key, chunk).catch(function(){ /* disk full — ride header still safe */ });
+}
+
+function journal(force){
+  if(restoring || ride.status==='idle' || !IDB.ok()) return Promise.resolve();
+  journalDirty = true;
+  var now = Date.now();
+  if(!force && now - journalT < JOURNAL_MS) return Promise.resolve();
+  journalT = now; journalDirty = false;
+  return flushPts().then(function(){ return IDB.set('live','current',headerOf()); })
+                   .catch(function(){});
+}
+
+/* Hard flush. Called on every path out of the app. Fire-and-forget by design:
+   the page may be torn down before the promise settles, but the IndexedDB
+   transaction is already queued by then and completes regardless. */
+function panicFlush(){
+  if(ride.status==='idle') return;
+  try{
+    if(ptBuf.length){
+      var chunk = ptBuf; ptBuf = [];
+      IDB.set('trk', rideId()+':'+String(ptSeq++).padStart(6,'0'), chunk).catch(function(){});
+    }
+    IDB.set('live','current',headerOf()).catch(function(){});
+    // belt and braces: a tiny synchronous copy of the header, no points
+    try{ localStorage.setItem('si-live', JSON.stringify(headerOf())); }catch(e){}
+  }catch(e){}
+}
+
+async function readAllPts(id){
+  if(!IDB.ok()) return [];
+  try{
+    var keys = await IDB.keys('trk'); if(!keys) return [];
+    keys = keys.filter(function(k){ return String(k).indexOf(id+':')===0; }).sort();
+    var out=[];
+    for(var i=0;i<keys.length;i++){
+      var c = await IDB.get('trk',keys[i]);
+      if(c && c.length) out = out.concat(c);
+    }
+    return out;
+  }catch(e){ return []; }
+}
+
+async function dropPts(id){
+  if(!IDB.ok()) return;
+  try{
+    var keys = await IDB.keys('trk'); if(!keys) return;
+    keys = keys.filter(function(k){ return String(k).indexOf(id+':')===0; });
+    for(var i=0;i<keys.length;i++) await IDB.del('trk',keys[i]);
+  }catch(e){}
+}
+
+async function clearActive(){
+  ptBuf=[]; ptSeq=0; journalT=0;
+  try{ await IDB.del('live','current'); }catch(e){}
+  try{ localStorage.removeItem('si-live'); }catch(e){}
+}
 
 /* ---------------- GPS ---------------- */
 function startGeo(){
@@ -420,46 +729,137 @@ function onFix(p){
     if(d>=3 && dt2>0 && d/dt2*3.6<160) ride.dist+=d;
   }
   if(usable || !ride.last) ride.last=here;
-  if(Number(cfg.track) && usable)
-    ride.pts.push([+here.lat.toFixed(6),+here.lon.toFixed(6),Math.round(now/1000),Math.round(ride.speed*10)/10]);
-
-  ride.still = (Number(cfg.auto) && ride.speed<2) ? ride.still+1 : 0;
-  render();
+  if(Number(cfg.track) && usable){
+    var row=[+here.lat.toFixed(6),+here.lon.toFixed(6),Math.round(now/1000),Math.round(ride.speed*10)/10];
+    ride.pts.push(row);
+    ptBuf.push(row);
+    if(ptBuf.length>=PT_BATCH) flushPts();
+  }
+  // Only paint when the screen is actually looking at us. Hidden repaints are pure battery.
+  if(!document.hidden) render();
 }
 
 /* ---------------- airtime ----------------
    A bar-mounted phone reads about 9.8 m/s2 at rest. Wheels-off means the frame stops
-   pushing back and total acceleration collapses toward zero. Hysteresis on the exit
-   threshold stops trail chatter from strobing the detector on and off. */
-var motionOn=false, air={up:false,start:0,tookOff:0,lastEnd:0};
+   pushing back and total acceleration collapses toward zero.
+
+   The old detector armed on ONE low sample and landed on ONE high sample, which broke
+   in three ways on real trail:
+
+     - a single spike mid-float (bar rotation, a cable slap, pulling the bike up) ended
+       the jump early, so a 0.7 s send logged as 0.23 s;
+     - one noisy low sample in braking chatter started a phantom that ran until the next
+       hard hit, logging seconds of "air" on a tiny hop;
+     - air.up survived the app being backgrounded, so the first sample after waking
+       measured the whole sleep as flight time.
+
+   This version is a four-state machine. Takeoff must stay low for ENTER_MS before it
+   counts. A landing spike must HOLD for COAST_MS before it counts, so a transient
+   mid-flight is ignored and the float continues. A break in the sensor stream aborts
+   the jump instead of measuring it. And a jump is only accepted if the magnitude
+   actually collapsed toward free fall, not merely dipped. */
+
+var SENS_HI = 2.2;      // how far above the floor a landing has to spike
+var ENTER_MS = 50;      // sustained low-g before we believe it is a takeoff
+var COAST_MS = 70;      // a landing spike has to hold this long to be a landing
+var MAX_AIR  = 3000;    // longer than this is not a mountain bike jump
+var REFRACT  = 300;     // ignore the landing rebound
+var STALL_MS = 250;     // a bigger gap than this means the sensor stream broke
+
+var motionOn=false;
+var air = { state:'ground', armStart:0, pendAt:0, minM:99, tookOff:0, lastEnd:0, lastT:0 };
+var airDiag = [];       // ring buffer for the Air test panel
+var liveM = 0;
+
+function resetAir(){ air.state='ground'; air.armStart=0; air.pendAt=0; air.minM=99; air.lastT=0; }
+
 function startMotion(){
   if(motionOn || !Number(cfg.air)) return;
   window.addEventListener('devicemotion',onMotion,{passive:true});
-  motionOn=true;
+  motionOn=true; resetAir();
 }
 function stopMotion(){
   if(!motionOn) return;
   window.removeEventListener('devicemotion',onMotion);
-  motionOn=false; air.up=false;
+  motionOn=false; resetAir();
 }
+
+function diag(verdict,dur,extra){
+  airDiag.unshift({ t:Date.now(), v:verdict, d:Math.round(dur||0), x:extra||'' });
+  if(airDiag.length>10) airDiag.pop();
+  if($('s-setup').classList.contains('on')) paintDiag();
+}
+
 function onMotion(e){
   var a=e.accelerationIncludingGravity;
   if(!a || a.x==null) return;
   var m=Math.sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
-  var th=SENS[cfg.sens].th, t=e.timeStamp||performance.now();
+  liveM=m;
 
-  if(!air.up){
-    if(m<th && ride.status==='running'){ air.up=true; air.start=t; air.tookOff=ride.speed; }
-    return;
+  // One clock, consistently. e.timeStamp shares performance.now()'s origin in Chrome,
+  // but fall back if a browser hands us something odd rather than mixing the two.
+  var pn=performance.now(), t=e.timeStamp;
+  if(!(typeof t==='number' && isFinite(t) && Math.abs(t-pn)<10000)) t=pn;
+
+  var th=SENS[cfg.sens].th, thHigh=th+SENS_HI, freefall=th*0.8;
+
+  // A break in the stream means the app was frozen, backgrounded, or the sensor
+  // stalled. Whatever was in flight cannot be measured, so throw it away.
+  if(air.lastT && (t-air.lastT) > STALL_MS){
+    if(air.state!=='ground'){ diag('dropped',0,'sensor gap'); resetAir(); }
+    air.lastT=t; return;
   }
-  if(m>th+2.2){                                  // landed, frame loaded again
-    var dur=t-air.start; air.up=false;
-    if(dur>=cfg.minair && dur<=4000 && t-air.lastEnd>350 && ride.status==='running' && air.tookOff>4){
-      air.lastEnd=t; logJump(dur,air.tookOff);
-    }
-    return;
+  air.lastT=t;
+
+  if(ride.status!=='running'){ if(air.state!=='ground') resetAir(); return; }
+
+  switch(air.state){
+
+    case 'ground':
+      if(m<th && (t-air.lastEnd)>REFRACT){
+        air.state='arming'; air.armStart=t; air.minM=m; air.tookOff=takeoffSpeed();
+      }
+      return;
+
+    case 'arming':
+      if(m>=th){ air.state='ground'; return; }          // a blip, not a takeoff
+      if(m<air.minM) air.minM=m;
+      if(t-air.armStart>=ENTER_MS) air.state='air';
+      return;
+
+    case 'air':
+      if(m<air.minM) air.minM=m;
+      if(t-air.armStart>MAX_AIR){ diag('dropped',t-air.armStart,'over '+(MAX_AIR/1000)+'s'); resetAir(); return; }
+      if(m>thHigh){ air.state='pending'; air.pendAt=t; }
+      return;
+
+    case 'pending':
+      // Dropped straight back to free fall: that spike was mid-flight, not a landing.
+      if(m<th){ air.state='air'; return; }
+      if(t-air.pendAt < COAST_MS) return;               // not held long enough yet
+      var dur = air.pendAt - air.armStart;
+      air.lastEnd = t;
+      var reason = null;
+      if(dur < cfg.minair)                 reason='under '+cfg.minair+'ms';
+      else if(dur > MAX_AIR)               reason='over '+(MAX_AIR/1000)+'s';
+      else if(air.minM > freefall)         reason='never reached free fall';
+      if(reason){ diag('rejected',dur,reason); resetAir(); return; }
+      logJump(dur, air.tookOff);
+      diag('logged',dur,'');
+      resetAir();
+      return;
   }
-  if(t-air.start>5000) air.up=false;              // sensor stalled or phone came loose
+}
+
+/* The old code threw away any jump where GPS speed was under 4 km/h. If the fix went
+   stale — trees, a tunnel, a cold start — speed read 0 and EVERY jump was silently
+   dropped, while the display kept showing the previous jump's airtime. That is almost
+   certainly the "stuck on an old number" behaviour. Speed is now advisory: it gates
+   only when the fix is actually fresh. */
+function takeoffSpeed(){
+  var fresh = ride.last && (Date.now()-ride.last.t) < 6000;
+  if(!fresh) return ride.speed || 0;
+  return ride.speed;
 }
 function logJump(dur,spd){
   var s=+(dur/1000).toFixed(2);
@@ -479,32 +879,74 @@ function paintAir(){
 }
 
 /* ---------------- clock ---------------- */
+/* Time is derived from the wall clock, never accumulated from interval ticks.
+   An interval that stops firing (frozen tab, screen off, app killed) loses time.
+   now - started - pausedMs cannot lose time no matter what the OS does to us. */
+function elapsed(){
+  if(!ride.started) return 0;
+  var end = (ride.status==='done') ? (ride.endedAt||Date.now()) : Date.now();
+  var paused = ride.pausedMs + (ride.pauseAt ? end - ride.pauseAt : 0);
+  return Math.max(0, end - ride.started - paused);
+}
 function tick(){
   var now=Date.now();
   if(ride.status==='running'){
-    var d=now-ride.lastTick; ride.lastTick=now; ride.totalMs+=d;
-    var stopped=Number(cfg.auto)&&ride.still>=4;
-    if(!stopped) ride.movingMs+=d;
-    if(stopped&&ride.speed) ride.speed=0;
+    ride.totalMs = now - ride.started;
+    ride.movingMs = elapsed() - ride.gapMs;
+    if(ride.movingMs < 0) ride.movingMs = 0;
   }
   render();
+  journal(false);
   if(flashT && now>flashT){ flashT=0; paintAir(); }
 }
 
+/* ---------------- time of day ----------------
+   12 hour, no seconds. Ticking once a minute instead of once a second means this
+   costs one wake per minute rather than sixty, and the timer is aligned to the
+   minute boundary so the display never sits a second behind. */
+var clockTO=null, clockIV=null, lastClock='';
+function paintClock(){
+  var d=new Date(), hh=d.getHours(), mm=d.getMinutes();
+  var ap = hh<12 ? 'AM' : 'PM', h12 = hh%12; if(h12===0) h12=12;
+  var s = h12+':'+(mm<10?'0':'')+mm+' '+ap;
+  if(s!==lastClock){ lastClock=s; put($('clock'),s); }
+}
+function startClock(){
+  stopClock(); paintClock();
+  clockTO=setTimeout(function(){
+    clockTO=null; paintClock();
+    clockIV=setInterval(paintClock,60000);
+  }, 60000-(Date.now()%60000)+40);
+}
+function stopClock(){
+  if(clockTO){ clearTimeout(clockTO); clockTO=null; }
+  if(clockIV){ clearInterval(clockIV); clockIV=null; }
+}
+
+function banner(){
+  var b=$('banner');
+  b.className='banner'+(ride.status==='running'?' rec':ride.status==='paused'?' pau':'');
+  if(ride.status==='running')      b.textContent='● Recording';
+  else if(ride.status==='paused')  b.textContent='Paused — not recording';
+  else b.textContent='';
+}
 function render(force){
-  put($('speed'),(ride.speed*U.spd).toFixed(1));
+  var sp=(ride.speed*U.spd).toFixed(1);
+  put($('speed'),sp);
+  $('speed').classList.toggle('wide', sp.length>4);
   paintSegs();
-  $('peak').style.left=(Math.min(1,ride.max/cfg.scale)*100).toFixed(1)+'%';
+  $('peak').style.bottom=(Math.min(1,ride.max/cfg.scale)*100).toFixed(1)+'%';
   put($('time'),hms(ride.movingMs));
   put($('dist'),(ride.dist/1000*U.spd).toFixed(2));
   var hrs=ride.movingMs/3600000;
   put($('avg'),(hrs>0?(ride.dist/1000*U.spd)/hrs:0).toFixed(1));
   put($('max'),(ride.max*U.spd).toFixed(1));
+  paintClock();
   var go=$('btn-go');
   put(go, ride.status==='running'?'Pause':ride.status==='paused'?'Resume':'Start ride');
   go.classList.toggle('primary',ride.status!=='running');
   $('btn-stop').disabled = ride.status==='idle';
-  if(force) paintAir();
+  if(force){ paintAir(); banner(); }
 }
 
 /* ---------------- orientation ----------------
@@ -526,9 +968,74 @@ async function lockScreen(){
   catch(e){ wl=null; }
 }
 function releaseScreen(){ if(wl){ try{wl.release();}catch(e){} wl=null; } }
+
+/* ---------------- background keepalive ----------------
+   Chrome on Android freezes, then discards, a backgrounded tab. A tab with live audio
+   is treated as playing media and is left alone. This is a silent, near-zero-gain
+   oscillator — inaudible, a fraction of a percent of battery, and the only lever a
+   web app has over its own lifecycle. Optional, off by default. */
+var ac=null, acNode=null;
+/* Autoplay policy suspends a fresh AudioContext until the user touches something.
+   On an auto-resumed ride there has been no touch yet, so arm a one-shot listener
+   and start the keepalive the moment Craig taps anything. */
+function armAudioGesture(){
+  if(window.__siArmed) return; window.__siArmed=true;
+  var go=function(){
+    window.__siArmed=false;
+    document.removeEventListener('pointerdown',go);
+    document.removeEventListener('touchstart',go);
+    if(ride.status==='running') keepaliveOn();
+  };
+  document.addEventListener('pointerdown',go,{once:true});
+  document.addEventListener('touchstart',go,{once:true,passive:true});
+}
+function keepaliveOn(){
+  if(acNode || !Number(cfg.bg)) return;
+  try{
+    var AC = window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    ac = ac || new AC();
+    if(ac.state==='suspended'){ ac.resume(); armAudioGesture(); }
+    var osc=ac.createOscillator(), g=ac.createGain();
+    osc.frequency.value=30; g.gain.value=0.0001;      // inaudible, but "playing"
+    osc.connect(g); g.connect(ac.destination); osc.start();
+    acNode={osc:osc,g:g};
+    if(navigator.mediaSession) navigator.mediaSession.playbackState='playing';
+  }catch(e){ acNode=null; }
+}
+function keepaliveOff(){
+  try{ if(acNode){ acNode.osc.stop(); acNode.osc.disconnect(); acNode.g.disconnect(); } }catch(e){}
+  acNode=null;
+  if(navigator.mediaSession) try{ navigator.mediaSession.playbackState='none'; }catch(e){}
+}
+
+/* ---------------- the save-my-ride handlers ----------------
+   visibilitychange:hidden is the last event Android reliably delivers. pagehide and
+   freeze are the belt and braces. beforeunload is NOT reliable on mobile and is not
+   used as a safety net here. */
+function onHidden(){
+  panicFlush();
+  clearInterval(tickId); tickId=null;        // no point painting a screen nobody sees
+  stopClock();
+  stopMotion();                              // and no half-measured jump across the gap
+}
+function onVisible(){
+  startClock();
+  if(ride.status==='running'){
+    if(Number(cfg.wake)) lockScreen();
+    keepaliveOn();
+    if(!tickId) tickId=setInterval(tick,1000);
+    if(geoId===null) startGeo();             // Android may have torn the watch down
+    if(Number(cfg.air)) startMotion();
+    render(true);
+  }
+}
 document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible'&&ride.status==='running'&&Number(cfg.wake)) lockScreen();
+  if(document.visibilityState==='hidden') onHidden(); else onVisible();
 });
+window.addEventListener('pagehide', panicFlush);
+window.addEventListener('freeze',   panicFlush);
+window.addEventListener('resume',   onVisible);
+window.addEventListener('blur',     function(){ if(ride.status!=='idle') panicFlush(); });
 
 /* ---------------- controls ---------------- */
 async function askMotion(){
@@ -540,66 +1047,80 @@ async function askMotion(){
   }
   return true;
 }
-$('btn-go').addEventListener('click',async function(){
-  if(ride.status==='running'){
-    ride.status='paused'; stopGeo(); stopMotion(); releaseScreen();
-    clearInterval(tickId); tickId=null; ride.speed=0; render(); toast('Paused'); return;
-  }
-  if(ride.status==='idle'){ ride=blank(); ride.started=Date.now(); }
-  ride.status='running'; ride.lastTick=Date.now(); ride.last=null; ride.still=0;
+async function doPause(quiet){
+  if(ride.status!=='running') return;
+  ride.status='paused'; ride.pauseAt=Date.now();
+  stopGeo(); stopMotion(); releaseScreen(); keepaliveOff();
+  clearInterval(tickId); tickId=null; ride.speed=0;
+  await journal(true); render(true); banner();
+  if(!quiet) toast('Paused');
+}
+async function doResume(){
+  if(ride.status==='paused' && ride.pauseAt){ ride.pausedMs += Date.now()-ride.pauseAt; ride.pauseAt=0; }
+  ride.status='running'; ride.last=null;
   startGeo(); lockPortrait();
   if(Number(cfg.wake)) lockScreen();
+  if(Number(cfg.bg))  keepaliveOn();
   if(Number(cfg.air) && await askMotion()) startMotion();
   if(!tickId) tickId=setInterval(tick,1000);
-  render(true); toast('Recording — waiting for GPS');
+  await journal(true); render(true); banner();
+}
+$('btn-go').addEventListener('click',async function(){
+  if(ride.status==='running'){ await doPause(); return; }
+  if(ride.status==='idle'){
+    ride=blank(); ride.started=Date.now(); ptBuf=[]; ptSeq=0; journalT=0;
+    await clearActive();
+  }
+  await doResume();
+  toast('Recording — waiting for GPS');
 });
 
-$('btn-stop').addEventListener('click',function(){
-  ride.status='done'; stopGeo(); stopMotion(); releaseScreen();
-  clearInterval(tickId); tickId=null; ride.speed=0; render();
-  var hrs=ride.movingMs/3600000;
-  $('save-sum').innerHTML=[
-    ['Time',hms(ride.movingMs)],
-    ['Distance',(ride.dist/1000*U.spd).toFixed(2)+' '+U.distLab],
-    ['Peak speed',(ride.max*U.spd).toFixed(1)+' '+U.spdLab],
-    ['Avg speed',(hrs>0?(ride.dist/1000*U.spd)/hrs:0).toFixed(1)+' '+U.spdLab],
-    ['Airs',String(ride.jumps.length)],
-    ['Best air',ride.bestAir?ride.bestAir.toFixed(2)+' s':'—']
-  ].map(function(p){ return '<div class="cell"><div class="k">'+p[0]+'</div><div class="v">'+p[1]+'</div></div>'; }).join('');
+async function finishRide(){
+  if(ride.status==='running' && ride.pauseAt===0){ /* running: freeze the clock now */ }
+  if(ride.status==='paused' && ride.pauseAt){ ride.pausedMs += Date.now()-ride.pauseAt; ride.pauseAt=0; }
+  ride.endedAt=Date.now();
+  ride.status='done'; stopGeo(); stopMotion(); releaseScreen(); keepaliveOff();
+  clearInterval(tickId); tickId=null; ride.speed=0;
+  ride.totalMs = ride.endedAt - ride.started;
+  ride.movingMs = Math.max(0, elapsed() - ride.gapMs);
+  await journal(true); render(); banner();
+  await flushPts();
+  var disk = await readAllPts(rideId());
+  if(disk.length > ride.pts.length) ride.pts = disk;
   var d=new Date(ride.started);
   $('ride-name').value=['Dawn','Morning','Afternoon','Evening','Night'][Math.min(4,Math.floor(d.getHours()/5))]+' session';
-  $('sheet-save').classList.add('on');
-});
-var disT=null;
-function disReset(){
-  var b=$('btn-discard'); b.classList.remove('arming'); put(b,'Hold to discard');
+  openSummary({
+    name:'', started:ride.started, movingMs:ride.movingMs, totalMs:ride.totalMs,
+    distM:ride.dist, max:ride.max,
+    avg:(ride.movingMs>0 ? (ride.dist/1000)/(ride.movingMs/3600000) : 0),
+    airs:ride.jumps.length, bestAir:ride.bestAir
+  }, ride.pts, ride.jumps, false);
 }
-$('btn-discard').addEventListener('pointerdown',function(e){
-  e.preventDefault();
-  var b=$('btn-discard'); b.classList.add('arming'); put(b,'Keep holding');
-  clearTimeout(disT);
-  disT=setTimeout(function(){
-    disT=null; disReset();
-    $('sheet-save').classList.remove('on'); ride=blank(); render(true); toast('Discarded');
-  },800);
-},{passive:false});
-['pointerup','pointercancel','pointerleave'].forEach(function(ev){
-  $('btn-discard').addEventListener(ev,function(){
-    if(disT){ clearTimeout(disT); disT=null; disReset(); toast('Hold it down to discard'); }
-  });
+holdButton('btn-stop','Keep holding',700,finishRide);
+holdButton('btn-discard','Keep holding',800,async function(){
+  var id=rideId();
+  await clearActive(); await dropPts(id);
+  ride=blank(); render(true); banner(); show('s-ride'); toast('Discarded');
 });
 $('btn-save').addEventListener('click',async function(){
-  var id='r'+ride.started, hrs=ride.movingMs/3600000;
+  var id=rideId(), hrs=ride.movingMs/3600000;
+  await flushPts();
+  var diskPts = await readAllPts(id);
+  if(diskPts.length > ride.pts.length) ride.pts = diskPts;   // journal wins after a resume
   var sum={ id:id, name:($('ride-name').value||'Ride').slice(0,60), started:ride.started,
     movingMs:ride.movingMs, totalMs:ride.totalMs, distM:Math.round(ride.dist),
     max:+ride.max.toFixed(1), avg:+(hrs>0?(ride.dist/1000)/hrs:0).toFixed(1),
     pts:ride.pts.length, airs:ride.jumps.length, bestAir:ride.bestAir };
   var list=(await S.get('rm-rides'))||[];
   list.unshift(sum); await S.set('rm-rides',list);
-  if(ride.pts.length) await S.set('rm-trk-'+id,ride.pts);
+  // points go to IndexedDB (room for thousands of rides), summaries stay in localStorage
+  if(ride.pts.length){
+    if(IDB.ok()){ try{ await IDB.set('kv','trk-'+id, ride.pts); }catch(e){ await S.set('rm-trk-'+id,ride.pts); } }
+    else await S.set('rm-trk-'+id,ride.pts);
+  }
   if(ride.jumps.length) await S.set('rm-jmp-'+id,ride.jumps);
-  $('sheet-save').classList.remove('on');
-  ride=blank(); render(true); toast('Saved'); show('s-list'); paintList();
+  await clearActive(); await dropPts(id);
+  ride=blank(); render(true); banner(); toast('Saved'); show('s-list'); paintList();
 });
 
 /* ---------------- lock: bumps and gloves ---------------- */
@@ -622,15 +1143,26 @@ $('shield').addEventListener('pointerdown',function(e){
 });
 
 /* ---------------- navigation ---------------- */
-function show(id){ ['s-ride','s-list','s-setup'].forEach(function(s){ $(s).classList.toggle('on',s===id); }); }
+/* A press carried over from the previous screen must not land on whatever now sits
+   under the thumb. Every navigation deadens the control bar for a beat. */
+var guardT=null;
+function guardControls(){
+  document.body.classList.add('guard');
+  clearTimeout(guardT);
+  guardT=setTimeout(function(){ document.body.classList.remove('guard'); },600);
+}
+function show(id){
+  ['s-ride','s-list','s-setup','s-map','s-sum']
+    .forEach(function(s){ $(s).classList.toggle('on',s===id); });
+  guardControls();
+}
 $('btn-rides').addEventListener('click',function(){ show('s-list'); paintList(); });
 $('btn-set').addEventListener('click',function(){ show('s-setup'); });
 $('btn-back1').addEventListener('click',function(){ show('s-ride'); });
 $('btn-back2').addEventListener('click',function(){ show('s-ride'); });
-$('btn-focus').addEventListener('click',function(){
-  var on=document.body.classList.toggle('focus');
-  $('btn-focus').classList.toggle('live',on);
-});
+$('btn-back3').addEventListener('click',function(){ show('s-ride'); });
+/* Focus mode removed in v33: with the split layout it hid half the screen and left
+   the other half empty. The layout is already pared down to what matters. */
 
 /* ---------------- ride list ---------------- */
 async function paintList(){
@@ -651,7 +1183,9 @@ async function paintList(){
         '<div>Airs<b>'+(r.airs||0)+'</b></div>'+
         '<div>Best air<b>'+(r.bestAir?r.bestAir.toFixed(2)+'s':'—')+'</b></div>'+
       '</div><div class="acts">'+
+        '<button class="chip" data-a="sum">Summary</button>'+
         (r.airs?'<button class="chip" data-a="airs">Jump list</button>':'')+
+        (r.pts?'<button class="chip" data-a="map">Map</button>':'')+
         (r.pts?'<button class="chip" data-a="gpx">GPX</button>':'')+
         '<button class="chip" data-a="csv">CSV</button>'+
         '<button class="chip" data-a="del">Delete</button>'+
@@ -672,6 +1206,7 @@ $('ridelist').addEventListener('click',async function(e){
     }
     await S.set('rm-rides',list.filter(function(x){return x.id!==id;}));
     await S.del('rm-trk-'+id); await S.del('rm-jmp-'+id);
+    if(IDB.ok()) try{ await IDB.del('kv','trk-'+id); }catch(e){}
     paintList(); toast('Deleted'); return;
   }
   if(a==='airs'){
@@ -684,11 +1219,468 @@ $('ridelist').addEventListener('click',async function(e){
     }).join('')+'</div>');
     return;
   }
-  var pts=(await S.get('rm-trk-'+id))||[], js2=(await S.get('rm-jmp-'+id))||[];
+  var pts=await ptsFor(id), js2=(await S.get('rm-jmp-'+id))||[];
   var base=r.name.replace(/\W+/g,'-')||'ride';
+  if(a==='map'){ openMap(pts,js2,r.name); return; }
+  if(a==='sum'){ openSummary(r,pts,js2,true); return; }
   if(a==='gpx') dl(base+'.gpx',gpx(r,pts),'application/gpx+xml');
   if(a==='csv') dl(base+'.csv',csv(r,pts,js2),'text/csv');
 });
+
+/* points may live in IndexedDB (new) or localStorage (rides saved before v30) */
+async function ptsFor(id){
+  if(IDB.ok()){ try{ var v=await IDB.get('kv','trk-'+id); if(v && v.length) return v; }catch(e){} }
+  return (await S.get('rm-trk-'+id))||[];
+}
+
+/* ================= BREADCRUMB MAP =================
+   Deliberately not MapLibre. A vector-tile engine is ~800 KB of JS, needs a live
+   connection to render anything, and its tile fetches are what the service worker
+   used to break. This is a canvas, a Mercator projection and an optional raster
+   backdrop: it draws instantly, it draws with no signal at all, and if the tiles
+   never arrive you still get your line. */
+var MAP = { pts:[], jumps:[], z:14, cx:0, cy:0, base:1, tiles:{}, raf:0, title:'Track' };
+var TILE_LIGHT='https://a.basemaps.cartocdn.com/light_all/';
+var TILE_DARK ='https://a.basemaps.cartocdn.com/dark_all/';
+
+function wx(lon,z){ return (lon+180)/360*256*Math.pow(2,z); }
+function wy(lat,z){
+  var s=Math.sin(lat*Math.PI/180);
+  return (0.5 - Math.log((1+s)/(1-s))/(4*Math.PI))*256*Math.pow(2,z);
+}
+/* A gap is any pair of consecutive fixes more than GAP_S apart. Normal spacing is
+   about a second; a screen-off stretch or an app kill leaves a hole. Detected from
+   the timestamps themselves, so it catches every cause the same way. */
+var GAP_S = 25;
+function isGap(a,b){ return (b[2]-a[2]) > GAP_S; }
+function gapStats(P){
+  var n=0, secs=0;
+  for(var i=1;i<P.length;i++) if(isGap(P[i-1],P[i])){ n++; secs += P[i][2]-P[i-1][2]; }
+  return {count:n, secs:secs};
+}
+
+function speedColor(v){
+  var t=Math.max(0,Math.min(1, v/(cfg.scale||60)));
+  var stops=[[0,59,110,165],[.34,79,209,165],[.67,255,176,32],[1,255,90,71]];
+  for(var i=1;i<stops.length;i++){
+    if(t<=stops[i][0]){
+      var a=stops[i-1],b=stops[i],f=(t-a[0])/(b[0]-a[0]||1);
+      return 'rgb('+Math.round(a[1]+(b[1]-a[1])*f)+','+Math.round(a[2]+(b[2]-a[2])*f)+
+             ','+Math.round(a[3]+(b[3]-a[3])*f)+')';
+    }
+  }
+  return 'rgb(255,90,71)';
+}
+
+function fitTrack(){
+  var P=MAP.pts; if(!P.length) return;
+  var la0=90,la1=-90,lo0=180,lo1=-180;
+  for(var i=0;i<P.length;i++){
+    if(P[i][0]<la0)la0=P[i][0]; if(P[i][0]>la1)la1=P[i][0];
+    if(P[i][1]<lo0)lo0=P[i][1]; if(P[i][1]>lo1)lo1=P[i][1];
+  }
+  var cv=$('mapcv'), w=cv.clientWidth||360, hgt=cv.clientHeight||360;
+  var z=18;
+  while(z>2){
+    var dx=Math.abs(wx(lo1,z)-wx(lo0,z)), dy=Math.abs(wy(la0,z)-wy(la1,z));
+    if(dx<w*0.86 && dy<hgt*0.86) break;
+    z--;
+  }
+  MAP.z=z;
+  MAP.cx=(wx(lo0,z)+wx(lo1,z))/2;
+  MAP.cy=(wy(la0,z)+wy(la1,z))/2;
+  drawMap();
+}
+
+function tileAt(z,x,y){
+  var n=Math.pow(2,z);
+  if(y<0||y>=n) return null;
+  x=((x%n)+n)%n;
+  var k=z+'/'+x+'/'+y;
+  if(MAP.tiles[k]!==undefined) return MAP.tiles[k];
+  var img=new Image(); img.crossOrigin='anonymous';
+  MAP.tiles[k]=null;
+  img.onload =function(){ MAP.tiles[k]=img; queueDraw(); };
+  img.onerror=function(){ MAP.tiles[k]=false; };   // offline: stays blank, line still draws
+  img.src=(Number(cfg.day)?TILE_LIGHT:TILE_DARK)+z+'/'+x+'/'+y+'.png';
+  return null;
+}
+
+function queueDraw(){ if(MAP.raf) return; MAP.raf=requestAnimationFrame(function(){ MAP.raf=0; drawMap(); }); }
+
+function drawMap(){
+  var cv=$('mapcv'); if(!cv) return;
+  var dpr=Math.min(2,window.devicePixelRatio||1);
+  var w=cv.clientWidth, hgt=cv.clientHeight;
+  if(!w||!hgt) return;
+  if(cv.width!==Math.round(w*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(hgt*dpr); }
+  var g=cv.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,hgt);
+  g.fillStyle=getComputedStyle(document.body).getPropertyValue('--graphite')||'#16181B';
+  g.fillRect(0,0,w,hgt);
+
+  var z=Math.round(MAP.z), scale=Math.pow(2,MAP.z-z);
+  var ox=w/2-MAP.cx, oy=hgt/2-MAP.cy;
+  function sxOf(lon){ return w/2+(wx(lon,MAP.z)-MAP.cx); }
+  function syOf(lat){ return hgt/2+(wy(lat,MAP.z)-MAP.cy); }
+
+  if(MAP.base){
+    var ts=256*scale;
+    var x0=Math.floor((0-ox)/ts), x1=Math.ceil((w-ox)/ts);
+    var y0=Math.floor((0-oy)/ts), y1=Math.ceil((hgt-oy)/ts);
+    g.globalAlpha=0.82;
+    for(var ty=y0;ty<=y1;ty++) for(var tx=x0;tx<=x1;tx++){
+      var img=tileAt(z,tx,ty);
+      if(img) g.drawImage(img, ox+tx*ts, oy+ty*ts, ts+0.6, ts+0.6);
+    }
+    g.globalAlpha=1;
+  }
+
+  var P=MAP.pts;
+  if(!P.length){
+    g.fillStyle='#C9CED3'; g.font='13px system-ui'; g.textAlign='center';
+    g.fillText('No track points for this ride', w/2, hgt/2);
+    return;
+  }
+
+  // the line, one coloured segment per fix; gaps drawn dashed and grey
+  g.lineCap='round'; g.lineJoin='round';
+  var px=null,py=null;
+  for(var i=0;i<P.length;i++){
+    var X=sxOf(P[i][1]), Y=syOf(P[i][0]);
+    if(px!==null){
+      if(isGap(P[i-1],P[i])){
+        g.setLineDash([7,6]); g.lineWidth=2.5; g.strokeStyle='rgba(201,206,211,.72)';
+      }else{
+        g.setLineDash([]);    g.lineWidth=4;   g.strokeStyle=speedColor(P[i][3]||0);
+      }
+      g.beginPath(); g.moveTo(px,py); g.lineTo(X,Y); g.stroke();
+    }
+    px=X; py=Y;
+  }
+  g.setLineDash([]);
+
+  // label each gap with how long the app was dark
+  var gi;
+  g.font='10px system-ui'; g.textAlign='center'; g.textBaseline='middle';
+  for(gi=1;gi<P.length;gi++){
+    if(!isGap(P[gi-1],P[gi])) continue;
+    var mx=(sxOf(P[gi-1][1])+sxOf(P[gi][1]))/2, my=(syOf(P[gi-1][0])+syOf(P[gi][0]))/2;
+    if(mx<-40||mx>w+40||my<-20||my>hgt+20) continue;
+    var secs=P[gi][2]-P[gi-1][2];
+    var lab=secs<90 ? Math.round(secs)+'s gap' : Math.round(secs/60)+' min gap';
+    var tw=g.measureText(lab).width+10;
+    g.fillStyle='rgba(8,9,10,.82)';
+    g.fillRect(mx-tw/2, my-8, tw, 16);
+    g.fillStyle='#C9CED3'; g.fillText(lab, mx, my);
+  }
+
+  // jumps: match each jump to the nearest fix in time
+  g.fillStyle='#FFB020'; g.strokeStyle='rgba(0,0,0,.55)'; g.lineWidth=1.5;
+  for(var j=0;j<MAP.jumps.length;j++){
+    var t=MAP.jumps[j][0], best=null, bd=1e12;
+    for(var q=0;q<P.length;q++){ var d=Math.abs(P[q][2]-t); if(d<bd){ bd=d; best=P[q]; } }
+    if(best && bd<20){
+      var JX=sxOf(best[1]), JY=syOf(best[0]);
+      g.beginPath(); g.arc(JX,JY,5.5,0,6.284); g.fill(); g.stroke();
+    }
+  }
+
+  // start and finish
+  function pin(pt,fill,label){
+    var X=sxOf(pt[1]), Y=syOf(pt[0]);
+    g.beginPath(); g.arc(X,Y,7,0,6.284); g.fillStyle=fill; g.fill();
+    g.strokeStyle='#08090A'; g.lineWidth=2; g.stroke();
+    g.fillStyle='#08090A'; g.font='bold 9px system-ui'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText(label,X,Y+0.5);
+  }
+  pin(P[0],'#4FD1A5','S');
+  if(P.length>1) pin(P[P.length-1],'#FF5A47','F');
+
+  if(MAP.base){
+    g.fillStyle='rgba(201,206,211,.55)'; g.font='9px system-ui'; g.textAlign='right'; g.textBaseline='bottom';
+    g.fillText('© OpenStreetMap · © CARTO', w-6, hgt-4);
+  }
+}
+
+function openMap(pts,jumps,title){
+  MAP.pts=pts||[]; MAP.jumps=jumps||[]; MAP.title=title||'Track';
+  $('map-title').textContent=MAP.title;
+  show('s-map');
+  requestAnimationFrame(function(){ fitTrack(); });
+}
+
+/* ================= POST-RIDE SUMMARY =================
+   Everything a rider wants in the two minutes after they stop: where they went, how
+   fast, where the airs landed, and what the gaps were. Doubles as the detail view for
+   any saved ride, so the same screen serves both. */
+var SUM = { r:null, pts:[], jumps:[], saved:false };
+
+function drawThumb(){
+  var cv=$('thumbcv'); if(!cv) return;
+  var dpr=Math.min(2,window.devicePixelRatio||1);
+  var w=cv.clientWidth, hgt=cv.clientHeight; if(!w||!hgt) return;
+  cv.width=Math.round(w*dpr); cv.height=Math.round(hgt*dpr);
+  var g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,hgt);
+  g.fillStyle=getComputedStyle(document.body).getPropertyValue('--graphite')||'#16181B';
+  g.fillRect(0,0,w,hgt);
+
+  var P=SUM.pts;
+  if(!P.length){
+    g.fillStyle='#C9CED3'; g.font='13px system-ui'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText('No track recorded', w/2, hgt/2); return;
+  }
+
+  // fit the track into the box with a margin, no tiles, no interaction
+  var la0=90,la1=-90,lo0=180,lo1=-180,i;
+  for(i=0;i<P.length;i++){
+    if(P[i][0]<la0)la0=P[i][0]; if(P[i][0]>la1)la1=P[i][0];
+    if(P[i][1]<lo0)lo0=P[i][1]; if(P[i][1]>lo1)lo1=P[i][1];
+  }
+  var Z=16, pad=16;
+  var spanX=Math.abs(wx(lo1,Z)-wx(lo0,Z))||1, spanY=Math.abs(wy(la0,Z)-wy(la1,Z))||1;
+  var k=Math.min((w-pad*2)/spanX,(hgt-pad*2)/spanY);
+  var cxw=(wx(lo0,Z)+wx(lo1,Z))/2, cyw=(wy(la0,Z)+wy(la1,Z))/2;
+  function TX(lon){ return w/2+(wx(lon,Z)-cxw)*k; }
+  function TY(lat){ return hgt/2+(wy(lat,Z)-cyw)*k; }
+
+  g.lineCap='round'; g.lineJoin='round';
+  var px=null,py=null;
+  for(i=0;i<P.length;i++){
+    var X=TX(P[i][1]), Y=TY(P[i][0]);
+    if(px!==null){
+      if(isGap(P[i-1],P[i])){ g.setLineDash([6,5]); g.lineWidth=2; g.strokeStyle='rgba(201,206,211,.7)'; }
+      else { g.setLineDash([]); g.lineWidth=3.2; g.strokeStyle=speedColor(P[i][3]||0); }
+      g.beginPath(); g.moveTo(px,py); g.lineTo(X,Y); g.stroke();
+    }
+    px=X; py=Y;
+  }
+  g.setLineDash([]);
+
+  g.fillStyle='#FFB020'; g.strokeStyle='rgba(0,0,0,.55)'; g.lineWidth=1.2;
+  for(var j=0;j<SUM.jumps.length;j++){
+    var t=SUM.jumps[j][0], best=null, bd=1e12;
+    for(var q=0;q<P.length;q++){ var dd=Math.abs(P[q][2]-t); if(dd<bd){ bd=dd; best=P[q]; } }
+    if(best && bd<20){ g.beginPath(); g.arc(TX(best[1]),TY(best[0]),4,0,6.284); g.fill(); g.stroke(); }
+  }
+  function pin(pt,fill){
+    g.beginPath(); g.arc(TX(pt[1]),TY(pt[0]),5.5,0,6.284);
+    g.fillStyle=fill; g.fill(); g.strokeStyle='#08090A'; g.lineWidth=1.8; g.stroke();
+  }
+  pin(P[0],'#4FD1A5'); if(P.length>1) pin(P[P.length-1],'#FF5A47');
+}
+
+function drawSpeed(){
+  var cv=$('spdcv'); if(!cv) return;
+  var dpr=Math.min(2,window.devicePixelRatio||1);
+  var w=cv.clientWidth, hgt=cv.clientHeight; if(!w||!hgt) return;
+  cv.width=Math.round(w*dpr); cv.height=Math.round(hgt*dpr);
+  var g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,hgt);
+
+  var P=SUM.pts;
+  if(P.length<2){
+    g.fillStyle='#C9CED3'; g.font='12px system-ui'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText('Not enough data', w/2, hgt/2); return;
+  }
+  var t0=P[0][2], t1=P[P.length-1][2], span=(t1-t0)||1;
+  var peak=0,i;
+  for(i=0;i<P.length;i++) if((P[i][3]||0)>peak) peak=P[i][3];
+  var top=Math.max(peak*1.12, 5);
+
+  function SX(t){ return (t-t0)/span*w; }
+  function SY(v){ return hgt - (v/top)*(hgt-8) - 4; }
+
+  // gridlines at quarters of peak
+  g.strokeStyle='rgba(201,206,211,.14)'; g.lineWidth=1;
+  for(i=1;i<4;i++){ var yy=hgt-(i/4)*(hgt-8)-4;
+    g.beginPath(); g.moveTo(0,yy); g.lineTo(w,yy); g.stroke(); }
+
+  // filled area under the trace
+  g.beginPath(); g.moveTo(SX(P[0][2]), hgt);
+  for(i=0;i<P.length;i++) g.lineTo(SX(P[i][2]), SY(P[i][3]||0));
+  g.lineTo(SX(P[P.length-1][2]), hgt); g.closePath();
+  var grad=g.createLinearGradient(0,0,0,hgt);
+  grad.addColorStop(0,'rgba(255,176,32,.38)'); grad.addColorStop(1,'rgba(255,176,32,.02)');
+  g.fillStyle=grad; g.fill();
+
+  // the trace, coloured by speed, broken at gaps
+  g.lineWidth=2; g.lineCap='round';
+  for(i=1;i<P.length;i++){
+    if(isGap(P[i-1],P[i])) continue;
+    g.strokeStyle=speedColor(P[i][3]||0);
+    g.beginPath(); g.moveTo(SX(P[i-1][2]),SY(P[i-1][3]||0));
+    g.lineTo(SX(P[i][2]),SY(P[i][3]||0)); g.stroke();
+  }
+
+  // peak marker
+  for(i=0;i<P.length;i++) if((P[i][3]||0)===peak){
+    var mx=SX(P[i][2]), my=SY(peak);
+    g.fillStyle='#FF5A47'; g.beginPath(); g.arc(mx,my,3.5,0,6.284); g.fill();
+    g.fillStyle='#EDEBE6'; g.font='10px system-ui'; g.textBaseline='bottom';
+    g.textAlign = mx > w-44 ? 'right' : 'left';
+    g.fillText((peak*U.spd).toFixed(1)+' '+U.spdLab, mx + (mx>w-44?-6:6), my-3);
+    break;
+  }
+
+  // amber ticks where airs happened
+  g.strokeStyle='rgba(255,176,32,.6)'; g.lineWidth=1.5;
+  for(var j=0;j<SUM.jumps.length;j++){
+    var jt=SUM.jumps[j][0]; if(jt<t0||jt>t1) continue;
+    var jx=SX(jt); g.beginPath(); g.moveTo(jx,hgt); g.lineTo(jx,hgt-10); g.stroke();
+  }
+}
+
+function openSummary(r, pts, jumps, saved){
+  SUM.r=r; SUM.pts=pts||[]; SUM.jumps=jumps||[]; SUM.saved=!!saved;
+
+  $('sum-head').textContent = saved ? 'Ride' : 'Ride done';
+  $('btn-sum-close').hidden = !saved;
+  $('ride-name').hidden = !!saved;
+  $('sum-name').hidden  = !saved;
+  $('sum-name').textContent = r.name||'Ride';
+  $('sum-controls').hidden = !!saved;
+  $('sum-controls-saved').hidden = !saved;
+
+  var d=new Date(r.started);
+  $('sum-when').textContent = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})+
+    ' · '+d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+
+  var hrs=r.movingMs/3600000;
+  var avg = r.avg!=null ? r.avg : (hrs>0 ? (r.distM/1000)/hrs : 0);
+  var cells=[
+    ['Moving time', hms(r.movingMs), 'w'],
+    ['Distance', (r.distM/1000*U.spd).toFixed(2)+' '+U.distLab, ''],
+    ['Peak speed', (r.max*U.spd).toFixed(1)+' '+U.spdLab, ''],
+    ['Avg speed', (avg*U.spd).toFixed(1)+' '+U.spdLab, ''],
+    ['Airs', String(r.airs||0), ''],
+    ['Best air', r.bestAir?r.bestAir.toFixed(2)+' s':'—', ''],
+    ['Total airtime', (jumpTotal(SUM.jumps)).toFixed(2)+' s', '']
+  ];
+  $('sum-big').innerHTML = cells.map(function(c){
+    return '<div class="cell '+c[2]+'"><div class="k">'+c[0]+'</div><div class="v">'+c[1]+'</div></div>';
+  }).join('');
+
+  // jump bars, longest air sets the scale
+  var js=SUM.jumps.slice().sort(function(a,b){ return a[0]-b[0]; });
+  var longest=0; js.forEach(function(j){ if(j[1]>longest) longest=j[1]; });
+  $('sect-airs').hidden = !js.length;
+  $('sum-jumps').innerHTML = js.length ? js.map(function(j,i){
+    var s=j[1]/1000, pct=longest?Math.max(6,(j[1]/longest)*100):0;
+    return '<div class="jbar"><i>'+(i+1)+'</i><div class="track"><span style="width:'+pct.toFixed(0)+'%"></span></div>'+
+           '<b>'+s.toFixed(2)+'s</b><em>'+(j[2]*U.spd).toFixed(1)+' '+U.spdLab+' in</em></div>';
+  }).join('') : '';
+
+  var gs=gapStats(SUM.pts);
+  var notes=[];
+  if(!SUM.pts.length) notes.push('No GPS track was recorded for this ride.');
+  if(gs.count) notes.push(gs.count+(gs.count===1?' gap':' gaps')+' in the track totalling '+
+    (gs.secs<90?Math.round(gs.secs)+' seconds':Math.round(gs.secs/60)+' minutes')+
+    ', shown as a dashed line. That is time the screen was off or the app was closed — '+
+    'distance across a gap is measured straight line, so it reads slightly short.');
+  $('sum-note').textContent = notes.join(' ');
+
+  $('sect-speed').hidden = SUM.pts.length<2;
+  $('spd-l').textContent='Start'; $('spd-r').textContent='Finish';
+
+  show('s-sum');
+  requestAnimationFrame(function(){ drawThumb(); drawSpeed(); });
+}
+function jumpTotal(js){ var t=0; for(var i=0;i<js.length;i++) t+=js[i][1]; return t/1000; }
+
+$('sum-thumb').addEventListener('click',function(){
+  if(!SUM.pts.length){ toast('No track for this ride'); return; }
+  openMap(SUM.pts, SUM.jumps, SUM.r && SUM.r.name ? SUM.r.name : 'This ride');
+});
+$('btn-sum-close').addEventListener('click',function(){ show('s-list'); paintList(); });
+$('btn-sum-done').addEventListener('click',function(){ show('s-list'); paintList(); });
+$('btn-sum-gpx').addEventListener('click',function(){
+  var base=(SUM.r.name||'ride').replace(/\W+/g,'-');
+  dl(base+'.gpx', gpx(SUM.r, SUM.pts), 'application/gpx+xml');
+});
+$('btn-sum-csv').addEventListener('click',function(){
+  var base=(SUM.r.name||'ride').replace(/\W+/g,'-');
+  dl(base+'.csv', csv(SUM.r, SUM.pts, SUM.jumps), 'text/csv');
+});
+window.addEventListener('resize',function(){
+  if($('s-sum').classList.contains('on')){ drawThumb(); drawSpeed(); }
+});
+
+/* pan + pinch */
+(function(){
+  var cv=$('mapcv'), pts={}, lastD=0, lastMid=null;
+  function pos(e){ return {x:e.clientX,y:e.clientY}; }
+  cv.addEventListener('pointerdown',function(e){
+    cv.setPointerCapture(e.pointerId); pts[e.pointerId]=pos(e); lastD=0; lastMid=null;
+    $('maphint').style.opacity=0;
+  });
+  cv.addEventListener('pointermove',function(e){
+    if(!pts[e.pointerId]) return;
+    var ids=Object.keys(pts), now=pos(e);
+    if(ids.length===1){
+      MAP.cx-= now.x-pts[e.pointerId].x;
+      MAP.cy-= now.y-pts[e.pointerId].y;
+      pts[e.pointerId]=now; queueDraw();
+    }else if(ids.length>=2){
+      pts[e.pointerId]=now;
+      var a=pts[ids[0]], b=pts[ids[1]];
+      var d=Math.hypot(a.x-b.x,a.y-b.y), mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+      if(lastD){
+        var f=d/lastD, nz=Math.max(2,Math.min(19,MAP.z+Math.log2(f)));
+        var k=Math.pow(2,nz-MAP.z);
+        MAP.cx*=k; MAP.cy*=k; MAP.z=nz;
+        if(lastMid){ MAP.cx-=(mid.x-lastMid.x); MAP.cy-=(mid.y-lastMid.y); }
+        queueDraw();
+      }
+      lastD=d; lastMid=mid;
+    }
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+    cv.addEventListener(ev,function(e){ delete pts[e.pointerId]; lastD=0; lastMid=null; });
+  });
+  window.addEventListener('resize',function(){ if($('s-map').classList.contains('on')) queueDraw(); });
+})();
+
+$('map-fit').addEventListener('click',fitTrack);
+$('map-base').addEventListener('click',function(){
+  MAP.base=MAP.base?0:1; this.classList.toggle('sel',!!MAP.base); drawMap();
+});
+$('map-gpx').addEventListener('click',function(){
+  if(!MAP.pts.length){ toast('No track points yet'); return; }
+  var r={name:MAP.title,started:MAP.pts[0][2]*1000};
+  dl((MAP.title.replace(/\W+/g,'-')||'track')+'.gpx',gpx(r,MAP.pts),'application/gpx+xml');
+});
+
+/* swipe right-to-left from the right edge of the ride screen opens the live track */
+(function(){
+  var sx=0,sy=0,t0=0,on=false;
+  function start(e){
+    if(!$('s-ride').classList.contains('on')) return;
+    if(document.body.classList.contains('locked')) return;
+    var t=e.touches?e.touches[0]:e;
+    sx=t.clientX; sy=t.clientY; t0=Date.now(); on=true;
+  }
+  function end(e){
+    if(!on) return; on=false;
+    var t=(e.changedTouches?e.changedTouches[0]:e);
+    var dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Date.now()-t0<600 && dx<-48 && Math.abs(dy)<60) liveMap();
+  }
+  var ed=$('edge-r');
+  ed.addEventListener('touchstart',start,{passive:true});
+  ed.addEventListener('touchend',end,{passive:true});
+  ed.addEventListener('pointerdown',start);
+  ed.addEventListener('pointerup',end);
+})();
+
+async function liveMap(){
+  var pts=ride.pts;
+  if(!pts.length && ride.started){ pts = await readAllPts(rideId()); }
+  if(!pts.length){ toast('No track yet — start a ride first'); return; }
+  openMap(pts, ride.jumps, ride.status==='idle' ? 'Track' : 'This ride');
+}
 
 function gpx(r,pts){
   return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Rail" xmlns="http://www.topografix.com/GPX/1/1">\n'+
@@ -722,32 +1714,173 @@ $('btn-dump').addEventListener('click',async function(){
   var list=(await S.get('rm-rides'))||[],out={exported:new Date().toISOString(),rides:[]};
   for(var i=0;i<list.length;i++){
     out.rides.push({ summary:list[i],
-      points:(await S.get('rm-trk-'+list[i].id))||[],
+      points:(await ptsFor(list[i].id)),
       jumps:(await S.get('rm-jmp-'+list[i].id))||[] });
   }
   dl('rail-all-rides.json',JSON.stringify(out),'application/json');
 });
 
+/* ---------------- air test ----------------
+   A live window into the detector. The green bar is total acceleration; the red mark
+   is the free-fall threshold for the current sensitivity. Anything left of the mark
+   counts as wheels-off. Every detection, accepted or not, is logged with its reason,
+   so a jump that is not registering can be diagnosed on the spot. */
+var atTimer=null;
+function paintDiag(){
+  var box=$('dlog'); if(!box) return;
+  if(!airDiag.length){ box.innerHTML='<div class="ln">No detections yet</div>'; return; }
+  box.innerHTML=airDiag.map(function(d){
+    var cls=d.v==='logged'?'ok':d.v==='rejected'?'no':'dr';
+    var tm=new Date(d.t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit',second:'2-digit'});
+    return '<div class="ln"><b>'+(d.d?(d.d/1000).toFixed(2)+'s':'—')+'</b>'+
+           '<span class="'+cls+'">'+d.v+'</span>'+
+           '<span style="flex:1;text-align:right">'+esc(d.x||tm)+'</span></div>';
+  }).join('');
+}
+function paintAirTest(){
+  var th=SENS[cfg.sens].th, full=14;
+  var pct=Math.max(0,Math.min(100,liveM/full*100));
+  $('g-fill').style.width=pct.toFixed(1)+'%';
+  $('g-fill').style.background = liveM<th ? 'var(--amber)' : 'var(--green)';
+  $('g-mark').style.left=(th/full*100).toFixed(1)+'%';
+  $('g-cap').textContent=liveM.toFixed(1)+' m/s²  ·  '+(liveM/9.81).toFixed(2)+' g';
+  ['ground','arming','air','pending'].forEach(function(s){
+    $('st-'+s).classList.toggle('on', air.state===s);
+  });
+}
+$('btn-airtest').addEventListener('click',async function(){
+  var box=$('airtest-box');
+  if(!box.hidden){
+    box.hidden=true; this.textContent='Start air test';
+    clearInterval(atTimer); atTimer=null;
+    if(ride.status!=='running') stopMotion();
+    return;
+  }
+  if(!await askMotion()) return;
+  var wasOn=motionOn;
+  if(!wasOn){ window.addEventListener('devicemotion',onMotion,{passive:true}); motionOn=true; resetAir(); }
+  box.hidden=false; this.textContent='Stop air test';
+  paintDiag();
+  atTimer=setInterval(paintAirTest,100);
+});
+$('btn-back2').addEventListener('click',function(){
+  if(atTimer){ clearInterval(atTimer); atTimer=null; $('airtest-box').hidden=true;
+    $('btn-airtest').textContent='Start air test';
+    if(ride.status!=='running') stopMotion(); }
+});
+
+/* ---------------- hold to confirm ----------------
+   Anything that ends or destroys a ride needs the thumb held down. A stray tap, a
+   glove brush, or a press carried over from the previous screen cannot complete one. */
+function holdButton(id, armedLabel, ms, fn){
+  var el=$(id), t=null;
+  function reset(){
+    el.classList.remove('arming');
+    if(el.dataset.base!==undefined) put(el, el.dataset.base);
+  }
+  el.addEventListener('pointerdown',function(e){
+    if(el.disabled) return;
+    e.preventDefault();
+    el.dataset.base = el.textContent;
+    el.classList.add('arming'); put(el, armedLabel);
+    clearTimeout(t);
+    t=setTimeout(function(){ t=null; reset(); fn(); }, ms);
+  },{passive:false});
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+    el.addEventListener(ev,function(){
+      if(t){ clearTimeout(t); t=null; reset(); toast('Hold it down'); }
+    });
+  });
+}
+
 /* ---------------- selects ---------------- */
 $('sel-scale').addEventListener('change',function(){ cfg.scale=Number(this.value); saveCfg(); afterCfg(); });
 $('sel-acc').addEventListener('change',function(){ cfg.acc=Number(this.value); saveCfg(); afterCfg(); });
 $('sel-minair').addEventListener('change',function(){ cfg.minair=Number(this.value); saveCfg(); });
-seg('seg-units','units'); seg('seg-wake','wake',Number); seg('seg-auto','auto',Number);
+seg('seg-units','units'); seg('seg-wake','wake',Number); seg('seg-bg','bg',Number);
 seg('seg-rate','rate'); seg('seg-day','day',Number); seg('seg-track','track',Number);
 seg('seg-air','air',Number); seg('seg-sens','sens');
+
+/* ---------------- resume an interrupted ride ----------------
+   The single most important function in the app. If Android killed us mid-ride, the
+   journal is still on disk. We restore it, count the dead time as a gap rather than
+   moving time, and hand the rider an explicit choice. Nothing is ever auto-discarded. */
+async function tryResume(){
+  var head=null;
+  try{ if(IDB.ok()) head = await IDB.get('live','current'); }catch(e){}
+  if(!head){ try{ var raw=localStorage.getItem('si-live'); if(raw) head=JSON.parse(raw); }catch(e){} }
+  if(!head || !head.started || head.status==='idle') return false;
+
+  restoring = true;
+  ride = blank();
+  ride.status   = 'paused';                 // always come back paused — never silently recording
+  ride.started  = head.started;
+  ride.pausedMs = head.pausedMs||0;
+  ride.gapMs    = head.gapMs||0;
+  ride.dist     = head.dist||0;
+  ride.max      = head.max||0;
+  ride.fixes    = head.fixes||0;
+  ride.jumps    = head.jumps||[];
+  ride.bestAir  = head.bestAir||0;
+  ride.lastAir  = head.lastAir||0;
+  ride.last     = head.last||null;
+  ptSeq         = head.ptSeq||0;
+  ride.pts      = await readAllPts('r'+head.started);
+
+  // dead time between the last journal write and now
+  var gap = Math.max(0, Date.now() - (head.stamp||Date.now()));
+  if(head.status==='running'){
+    ride.gapMs += gap;                       // counts as elapsed, not as moving
+    ride.pauseAt = Date.now();
+  }else{
+    ride.pauseAt = head.pauseAt || Date.now();
+  }
+  ride.totalMs  = Date.now() - ride.started;
+  ride.movingMs = Math.max(0, elapsed() - ride.gapMs);
+  restoring = false;
+
+  var summary = hms(ride.movingMs)+' · '+(ride.dist/1000*U.spd).toFixed(2)+' '+U.distLab+
+    ' · '+ride.jumps.length+(ride.jumps.length===1?' air':' airs')+
+    (gap>15000 ? ' · '+Math.round(gap/60000)+' min gap while the app was closed' : '');
+
+  /* A gap longer than COLD_GAP almost certainly means the ride is over and the phone
+     just sat in a pocket or a truck. Auto-resuming then would quietly record an hour
+     of driving onto the end of a ride. Short gap: pick straight back up. Long gap:
+     ask, because guessing wrong is worse than one tap. */
+  if(gap > COLD_GAP){
+    $('resume-info').textContent = summary;
+    $('sheet-resume').classList.add('on'); guardControls();
+    render(true); banner(); await journal(true);
+    return true;
+  }
+
+  render(true); banner(); await journal(true);
+  await doResume();
+  toast('Ride recovered — recording again');
+  return true;
+}
+$('btn-resume').addEventListener('click',async function(){
+  $('sheet-resume').classList.remove('on'); await doResume(); toast('Back on');
+});
+holdButton('btn-resume-fin','Keep holding',700,function(){
+  $('sheet-resume').classList.remove('on'); finishRide();
+});
 
 /* ---------------- boot ---------------- */
 (async function(){
   var saved=await S.get('rm-cfg'); if(saved) Object.assign(cfg,saved);
   paintSeg(); afterCfg(); render(true); lockPortrait();
+  $('verline').textContent='Send It '+APP_VERSION+' · '+(IDB.ok()?'crash-safe storage on':'localStorage only');
+  startClock();
+  try{ await tryResume(); }catch(e){}
   if(!window.isSecureContext) warn('GPS and motion need https. Host this file (see the README) or open it over https.');
   else if(typeof DeviceMotionEvent==='undefined') warn('No motion sensor here — speed and distance still work, jump detection will not.');
   if('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('sw.js').catch(function(){});
 })();
 
-window.addEventListener('beforeunload',function(e){
-  if(ride.status==='running'){ e.preventDefault(); e.returnValue=''; }
-});
+/* beforeunload is unreliable on Android and a dialog is no substitute for a journal.
+   Flush instead of nagging. */
+window.addEventListener('beforeunload', panicFlush);
 })();
 </script>
 </body>
