@@ -60,43 +60,59 @@
      224px for the digits and 135px for the stat column. */
   .mainrow{flex:1;display:flex;flex-direction:row;min-height:0;gap:1px;background:var(--graphite-2)}
   .cola{flex:1.66;display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--ink)}
-  .gaugerow{flex:1;display:flex;gap:calc(11 * var(--k));min-height:0;align-items:center;
-    padding:calc(12 * var(--k)) calc(10 * var(--k)) calc(12 * var(--k)) calc(12 * var(--k))}
   .colb{flex:1;display:flex;flex-direction:column;gap:1px;background:var(--graphite-2);min-width:0}
 
-  .speedblock{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
-  .readout{line-height:.82}
-  #speed{font-family:var(--display);font-weight:700;letter-spacing:-.03em;display:block;
-    font-size:clamp(2.4rem,calc(90 * var(--k)),10rem)}
-  /* three-digit readings only happen in a vehicle, but they must not clip */
-  #speed.wide{font-size:clamp(2rem,calc(71 * var(--k)),8rem)}
-  .unit{font-family:var(--display);font-size:clamp(.62rem,calc(12 * var(--k)),1.4rem);
-    letter-spacing:.14em;text-transform:uppercase;color:var(--label);margin-top:calc(6 * var(--k))}
-  .peaklab{font-size:clamp(.62rem,calc(12 * var(--k)),1.4rem);letter-spacing:.16em;
-    text-transform:uppercase;color:var(--label);margin-top:calc(16 * var(--k))}
-  .peaklab b{font-family:var(--display);font-weight:600;color:#C9CED3;
-    font-size:clamp(.82rem,calc(16 * var(--k)),1.9rem)}
+  /* Speed sits in the upper third, the gauge about two thirds down. The flex weights
+     below do that positioning — they are the spacing, not decoration. */
+  .speedarea{flex:1;display:flex;flex-direction:column;min-height:0;
+    padding:0 calc(12 * var(--k))}
+  .padtop{flex:.55}
+  .padmid{flex:1}
+  .padbot{flex:.75}
+
+  .readout{display:flex;align-items:baseline;gap:calc(8 * var(--k));line-height:.8}
+  #speed{font-family:var(--display);font-weight:700;letter-spacing:-.03em;
+    font-size:clamp(2.4rem,calc(112 * var(--k)),12rem)}
+  /* a three-digit reading plus the unit is wider than the column — only ever happens
+     in a vehicle, but it must not clip */
+  #speed.wide{font-size:clamp(2rem,calc(84 * var(--k)),9rem)}
+  .unit{font-family:var(--display);font-weight:600;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--grey);
+    font-size:clamp(.68rem,calc(17 * var(--k)),1.6rem)}
 
   /* clock parked bottom-left, under the speed */
   .clockcell{flex:none;border-top:1px solid var(--graphite-2);
-    padding:calc(10 * var(--k)) calc(12 * var(--k)) calc(12 * var(--k))}
+    padding:calc(8 * var(--k)) calc(12 * var(--k)) calc(10 * var(--k))}
   .clockcell .k{font-size:clamp(.58rem,calc(11 * var(--k)),1.25rem);letter-spacing:.16em;
     text-transform:uppercase;color:var(--label)}
-  .clockcell .v{font-family:var(--display);font-size:clamp(1.3rem,calc(34 * var(--k)),3.6rem);
-    font-weight:600;color:var(--chalk);line-height:1.05;margin-top:calc(3 * var(--k))}
+  .clockcell .v{font-family:var(--display);font-size:clamp(.74rem,calc(15 * var(--k)),1.7rem);
+    font-weight:600;color:var(--chalk);line-height:1.15;margin-top:calc(2 * var(--k))}
 
-  /* Vertical segmented gauge. Stacks bottom-up so it fills like a column of mercury,
-     which reads in peripheral vision without taking horizontal room off the digits. */
-  .vrail{position:relative;width:clamp(14px,calc(24 * var(--k)),42px);flex:none;display:flex;
-    flex-direction:column;height:64%}
-  .vscale{font-size:clamp(.55rem,calc(10 * var(--k)),1.1rem);letter-spacing:.1em;
-    color:var(--label);text-align:center;line-height:1.4}
-  .segwrap{flex:1;position:relative;min-height:0;display:flex}
-  .segs{flex:1;display:flex;flex-direction:column-reverse;gap:2px;align-items:center;min-height:0}
-  .segs i{width:62%;flex:1;background:var(--graphite-2);position:relative;border-radius:1px}
-  .segs i.on{background:var(--amber)}
-  .segs i.q::after{content:"";position:absolute;right:-6px;top:50%;width:4px;height:1px;background:var(--label)}
-  #peak{position:absolute;left:0;right:0;height:2px;background:var(--chalk);bottom:0;pointer-events:none}
+  /* Horizontal segmented gauge, wedged so it climbs to the right. The shape carries
+     the reading as much as the length does, which is easier to catch in peripheral
+     vision on rough ground than a flat bar of uniform height.
+
+     Each segment's lit colour is baked into --c once per scale change (see drawRail),
+     so the per-frame work stays a single class toggle. */
+  .rail{position:relative;flex:none}
+  /* the peak line spans the bar only, so it never strikes through the Peak number below */
+  .segbox{position:relative}
+  .segs{display:flex;gap:2px;align-items:flex-end}
+  .segs i{flex:1;background:var(--graphite-2);border-radius:1px;position:relative}
+  .segs i.on{background:var(--c,var(--amber))}
+  .segs i.q::after{content:"";position:absolute;left:50%;top:calc(-7 * var(--k));
+    width:1px;height:calc(4 * var(--k));background:var(--label)}
+  #peak{position:absolute;top:calc(-4 * var(--k));bottom:calc(-4 * var(--k));width:2px;
+    background:var(--chalk);left:0;transform:translateX(-1px);pointer-events:none}
+  .railtags{display:flex;justify-content:space-between;align-items:baseline;
+    margin-top:calc(7 * var(--k));
+    font-size:clamp(.58rem,calc(11 * var(--k)),1.25rem);letter-spacing:.14em;
+    text-transform:uppercase;color:var(--label)}
+  .railtags b{font-family:var(--display);font-weight:600;color:#C9CED3;
+    font-size:clamp(.95rem,calc(20 * var(--k)),2.2rem)}
+  /* vertical sits centred under Peak, number the same size as Peak's */
+  .railtags.vrow{justify-content:center;margin-top:calc(6 * var(--k))}
+  .railtags.vrow i{font-style:normal;margin-left:calc(4 * var(--k))}
 
   .colb .cell{background:var(--ink);flex:1;display:flex;flex-direction:column;justify-content:center;
     padding:calc(8 * var(--k)) calc(10 * var(--k));min-height:0}
@@ -109,6 +125,9 @@
     text-transform:uppercase;color:var(--grey);margin-top:calc(3 * var(--k));
     white-space:nowrap;overflow:hidden}
   .cell.air .k,.cell.air .v{color:var(--amber)}
+  /* the airs count was unreadable at 10px — 50% up, allowed to wrap onto two lines */
+  .cell.air .sub{font-size:clamp(.78rem,calc(15 * var(--k)),1.65rem);line-height:1.3;
+    white-space:pre-line;overflow:visible;text-overflow:clip}
   body.noair .cell.air{display:none}
 
   /* After any screen change the controls ignore input briefly, so a press that carries
@@ -141,7 +160,8 @@
     .logoband{padding:calc(3 * var(--k)) 0}
     .colb .cell{padding:calc(5 * var(--k)) calc(9 * var(--k))}
     .clockcell{padding:calc(6 * var(--k)) calc(12 * var(--k)) calc(8 * var(--k))}
-    .peaklab{margin-top:calc(8 * var(--k))}
+    .padmid{flex:.7}
+    .padtop{flex:.4}
   }
 
   /* --k already flips for landscape above, so sizes carry over proportionally and
@@ -184,41 +204,21 @@
   /* ---- live status banner ---- */
   .banner{display:none;padding:7px var(--pad);font-size:13px;letter-spacing:.16em;
     text-transform:uppercase;font-weight:600;text-align:center}
-  .banner.rec{display:block;background:#241a05;color:var(--amber)}
-  .banner.pau{display:block;background:#2a1207;color:var(--amber);animation:blink 1.1s steps(2,start) infinite}
+  .banner.rec{display:block;background:transparent;color:var(--amber)}
+  .banner.pau{display:block;background:transparent;color:var(--amber);animation:blink 1.1s steps(2,start) infinite}
   @keyframes blink{50%{opacity:.28}}
 
   /* ---- map / breadcrumb ---- */
-  #mapwrap{flex:1;position:relative;min-height:0;background:var(--graphite)}
-  #mapcv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
-  .maphint{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:12px;
-    letter-spacing:.14em;text-transform:uppercase;color:var(--label);opacity:.75;pointer-events:none}
-  .mapbar{display:flex;gap:1px;background:var(--graphite-2);padding-top:1px}
-  .mapbar button{flex:1;background:var(--ink);color:var(--label);border:0;font:inherit;
-    padding:11px 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
-  .mapbar button.sel{color:var(--amber)}
-  .legend{display:flex;align-items:center;gap:6px;padding:8px var(--pad);font-size:11px;
-    letter-spacing:.12em;text-transform:uppercase;color:var(--grey)}
-  .legend .ramp{flex:1;height:6px;border-radius:3px;
-    background:linear-gradient(90deg,#3B6EA5,#4FD1A5,#FFB020,#FF5A47)}
   /* ---- post-ride summary ---- */
   #s-sum .body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .hero{padding:14px var(--pad) 10px}
   .hero .hname{font-family:var(--display);font-size:clamp(1.5rem,7vw,2.1rem);font-weight:600;line-height:1.1}
   .hero .hwhen{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--label);margin-top:5px}
-  .thumb{position:relative;height:190px;background:var(--graphite);margin:0 0 1px}
-  .thumb canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .thumb .tap{position:absolute;right:8px;bottom:8px;font-size:11px;letter-spacing:.12em;
-    text-transform:uppercase;color:var(--label);background:rgba(8,9,10,.72);padding:5px 8px;border-radius:2px}
   .big{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--graphite-2)}
   .big .cell{background:var(--ink);padding:12px var(--pad)}
   .big .cell.w{grid-column:1 / -1}
   .sect{padding:14px var(--pad) 6px;font-size:12px;letter-spacing:.18em;
     text-transform:uppercase;color:var(--label)}
-  .chartbox{height:120px;position:relative;margin:0 var(--pad) 4px;background:var(--graphite)}
-  .chartbox canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .chartlab{display:flex;justify-content:space-between;padding:4px var(--pad) 0;
-    font-size:11px;color:var(--grey)}
   .jbar{display:flex;align-items:center;gap:9px;padding:7px var(--pad)}
   .jbar i{font-style:normal;color:var(--grey);font-size:12px;width:22px}
   .jbar .track{flex:1;height:9px;background:var(--graphite-2);border-radius:2px;overflow:hidden}
@@ -241,8 +241,6 @@
   .dlog .ln{display:flex;gap:8px;border-top:1px solid var(--graphite-2);padding:3px 0}
   .dlog .ln b{min-width:58px;font-family:var(--display);font-size:14px;color:var(--chalk)}
   .dlog .ln .ok{color:var(--green)} .dlog .ln .no{color:var(--red)} .dlog .ln .dr{color:var(--grey)}
-  .edge{position:fixed;top:0;bottom:0;width:22px;z-index:5}
-  .edge.r{right:0}
   .ver{font-size:11px;letter-spacing:.12em;color:var(--grey);opacity:.6;
     text-align:center;padding:6px 0 2px}
   .sum{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--graphite-2);margin:var(--pad)}
@@ -278,17 +276,20 @@
 
   <div class="mainrow">
     <div class="cola">
-      <div class="gaugerow">
-        <div class="vrail">
-          <div class="vscale" id="rt4">60</div>
-          <div class="segwrap"><div class="segs" id="segs"></div><div id="peak"></div></div>
-          <div class="vscale" id="rt0">0</div>
+      <div class="speedarea">
+        <div class="padtop"></div>
+        <div class="readout"><div id="speed">0</div><div class="unit" id="unit">km/h</div></div>
+        <div class="padmid"></div>
+        <div class="rail">
+          <div class="segbox"><div class="segs" id="segs"></div><div id="peak"></div></div>
+          <div class="railtags">
+            <span id="rt0">0</span><span>Peak <b id="max">0</b></span><span id="rt4">60</span>
+          </div>
+          <div class="railtags vrow">
+            <span><span id="vlab">Climb</span> <b id="vert">0</b><i id="vunit">m</i></span>
+          </div>
         </div>
-        <div class="speedblock">
-          <div class="readout"><div id="speed">0.0</div></div>
-          <div class="unit" id="unit">km/h</div>
-          <div class="peaklab">Peak <b id="max">0.0</b></div>
-        </div>
+        <div class="padbot"></div>
       </div>
       <div class="clockcell">
         <div class="k">Clock</div>
@@ -308,31 +309,16 @@
     </div>
   </div>
 
+  <!-- Start on the left, Finish on the right: things begin on the left and end on the
+       right. Finish shares its side with Save on the summary screen, never Discard. -->
   <div class="controls">
-    <button class="btn ghost" id="btn-stop" disabled>Finish</button>
     <button class="btn primary" id="btn-go">Start ride</button>
+    <button class="btn ghost" id="btn-stop" disabled>Finish</button>
   </div>
 </section>
 
 <div id="shield"></div>
 <div id="lockmsg">Locked — press and hold to unlock</div>
-<div class="edge r" id="edge-r"></div>
-
-<!-- ================= MAP / BREADCRUMB ================= -->
-<section id="s-map" class="screen">
-  <div class="head"><h1 id="map-title">Track</h1><button class="chip" id="btn-back3">Close</button></div>
-  <div id="mapwrap">
-    <canvas id="mapcv"></canvas>
-    <div class="maphint" id="maphint">Drag to pan · pinch to zoom</div>
-  </div>
-  <div class="legend"><span>Slow</span><span class="ramp"></span><span>Fast</span>
-    <span style="color:var(--amber)">● air</span><span>┄ gap</span></div>
-  <div class="mapbar">
-    <button id="map-fit">Fit</button>
-    <button id="map-base" class="sel">Basemap</button>
-    <button id="map-gpx">GPX</button>
-  </div>
-</section>
 
 <!-- ================= RESUME SHEET ================= -->
 <section id="sheet-resume" class="sheet">
@@ -345,8 +331,8 @@
     </div>
   </div>
   <div class="controls">
-    <button class="btn ghost" id="btn-resume-fin">Finish it</button>
     <button class="btn primary" id="btn-resume">Resume ride</button>
+    <button class="btn ghost" id="btn-resume-fin">Finish it</button>
   </div>
 </section>
 
@@ -360,6 +346,9 @@
 <section id="s-setup" class="screen">
   <div class="head"><h1>Setup</h1><button class="chip" id="btn-back2">Close</button></div>
   <div class="body">
+
+    <div class="set"><div class="lab">Sport<span>Bike sets the speed bar to 0–60 and shows metres climbed. Ski sets it to 0–80, shows vertical descended, and counts lift rides on the summary. Both climb and descent are always saved.</span></div>
+      <div class="seg" id="seg-sport"><button data-v="bike">Bike</button><button data-v="ski">Ski</button></div></div>
 
     <div class="set"><div class="lab">Jump detection<span>Reads the accelerometer for freefall. Needs the phone clamped firmly to the bars.</span></div>
       <div class="seg" id="seg-air"><button data-v="1">On</button><button data-v="0">Off</button></div></div>
@@ -382,8 +371,6 @@
       <select id="sel-scale"><option>30</option><option>40</option><option>50</option><option>60</option><option>80</option><option>100</option></select></div>
     <div class="set"><div class="lab">Accuracy cutoff<span>Fixes worse than this are ignored for distance.</span></div>
       <select id="sel-acc"><option value="10">10 m</option><option value="20">20 m</option><option value="30">30 m</option><option value="50">50 m</option></select></div>
-    <div class="set"><div class="lab">Track logging<span>Full keeps every GPS point for GPX export. Stats-only stores just the numbers.</span></div>
-      <div class="seg" id="seg-track"><button data-v="1">Full</button><button data-v="0">Stats only</button></div></div>
     <div class="set" style="display:block">
       <div class="lab" style="margin-bottom:12px">Export everything<span>One JSON file with every ride and jump. Keep a copy before you clear the app's data.</span></div>
       <button class="btn" style="min-height:52px" id="btn-dump">Export all rides</button>
@@ -398,6 +385,7 @@
           <div id="st-air">Air</div><div id="st-pending">Landing</div>
         </div>
         <div class="dlog" id="dlog"><div class="ln">No detections yet</div></div>
+        <button class="btn" style="min-height:44px;margin-top:8px" id="btn-airtrace">Save air traces</button>
       </div>
       <button class="btn" style="min-height:48px;margin-top:14px" id="btn-update">Check for updates</button>
       <div class="ver" id="verline">Send It —</div>
@@ -416,27 +404,18 @@
       <div class="hwhen" id="sum-when"></div>
     </div>
 
-    <div class="thumb" id="sum-thumb">
-      <canvas id="thumbcv"></canvas>
-      <div class="tap">Tap for full map</div>
-    </div>
-
     <div class="big" id="sum-big"></div>
-
-    <div class="sect" id="sect-speed">Speed through the ride</div>
-    <div class="chartbox"><canvas id="spdcv"></canvas></div>
-    <div class="chartlab"><span id="spd-l">Start</span><span id="spd-r">Finish</span></div>
 
     <div class="sect" id="sect-airs">Airs</div>
     <div id="sum-jumps"></div>
 
     <div class="note" id="sum-note"></div>
   </div>
-  <!-- Save on the left, discard on the right. Finish sits on the left of the ride
+  <!-- Discard on the left, Save on the right. Finish sits on the right of the ride
        screen, so a press that carries through from it lands on Save, never Discard. -->
   <div class="controls" id="sum-controls">
-    <button class="btn primary" id="btn-save">Save ride</button>
     <button class="btn ghost" id="btn-discard">Hold to discard</button>
+    <button class="btn primary" id="btn-save">Save ride</button>
   </div>
 </section>
 
@@ -522,22 +501,48 @@ function put(el,v){ if(el && el._v!==v){ el._v=v; el.textContent=v; } }
 function esc(s){ return String(s).replace(/[<>&"]/g,function(c){ return ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'})[c]; }); }
 
 /* ---------------- settings ---------------- */
-var APP_VERSION = 'v39';
-var cfg = { units:'metric', wake:1, bg:1, rate:'fast', day:0, scale:60, acc:20, track:1,
-            air:1, sens:'med', minair:180 };
-var U = { spd:1, spdLab:'km/h', distLab:'km' };
+var APP_VERSION = 'v44';
+var cfg = { units:'metric', wake:1, bg:1, rate:'fast', day:0, scale:60, acc:20, track:0,
+            air:1, sens:'med', minair:180, sport:'bike' };
+var U = { spd:1, spdLab:'km/h', distLab:'km', vert:1, vertLab:'m' };
+/* Sport decides two things: the speed bar's full scale, and which vertical the ride
+   screen shows. Both directions are always counted and saved either way. */
+var SPORT = { bike:{scale:60, vlab:'Climb'}, ski:{scale:80, vlab:'Vert'} };
+function isSki(){ return cfg.sport==='ski'; }
 // freefall threshold in m/s^2 — total acceleration this low means the phone is unloaded
 var SENS = { low:{th:2.6}, med:{th:3.6}, high:{th:4.6} };
 
 function applyUnits(){
   var imp = cfg.units==='imperial';
   U.spd = imp?0.621371:1; U.spdLab = imp?'mph':'km/h'; U.distLab = imp?'mi':'km';
+  U.vert = imp?3.28084:1; U.vertLab = imp?'ft':'m';
+  put($('vunit'),U.vertLab);
+  put($('vlab'),(SPORT[cfg.sport]||SPORT.bike).vlab);
   put($('unit'),U.spdLab);
   put($('lab-dist'),'Distance ('+U.distLab+')');
   put($('lab-avg'),'Avg speed ('+U.spdLab+')');
   put($('lab-max'),'Peak ('+U.spdLab+')');
 }
 var SEGN=24, segEls=null, lastLit=-1;      // 24 segments = quarter marks land on whole segments
+
+/* Banded, not blended. Interpolating straight from the logo blue to amber runs through
+   a grey-beige midpoint that reads as a rendering fault rather than a design. Holding
+   each colour flat and crossing over in a couple of segments gives three zones you can
+   identify at a glance, like a tachometer.
+   The blue is #85C8FE, sampled from the "IT" in the Send It artwork. */
+function segColor(t){
+  var stops=[[0.00,0x85,0xC8,0xFE],[0.42,0x85,0xC8,0xFE],
+             [0.58,0xFF,0xB0,0x20],[0.82,0xFF,0xB0,0x20],[1.00,0xFF,0x5A,0x47]];
+  for(var i=1;i<stops.length;i++){
+    if(t<=stops[i][0]){
+      var a=stops[i-1],b=stops[i],f=(t-a[0])/((b[0]-a[0])||1);
+      return 'rgb('+Math.round(a[1]+(b[1]-a[1])*f)+','+
+                    Math.round(a[2]+(b[2]-a[2])*f)+','+
+                    Math.round(a[3]+(b[3]-a[3])*f)+')';
+    }
+  }
+  return 'rgb(255,90,71)';
+}
 function drawRail(){
   var box=$('segs');
   if(box.childElementCount!==SEGN){
@@ -549,9 +554,15 @@ function drawRail(){
     }
     segEls=box.children;
   }
-  // Vertical wedge: narrow at the bottom, full width at the top, so the bar reads as
-  // a shape as well as a level. Widths are set once per scale change, not per frame.
-  for(var k=0;k<SEGN;k++) segEls[k].style.width = Math.round(52+38*(k/(SEGN-1)))+'%';
+  /* Horizontal wedge: 16px tall at the left climbing to 55px at the right, scaled by
+     --k like everything else. Heights and colours are written once per scale change,
+     never per frame. */
+  var kk = Math.min(window.innerWidth/360, window.innerHeight/780) || 1;
+  for(var k=0;k<SEGN;k++){
+    var e=segEls[k], t=k/(SEGN-1);
+    e.style.height = Math.round((16 + 39*t) * kk) + 'px';
+    e.style.setProperty('--c', segColor(t));
+  }
   var f=U.spd, sc=cfg.scale;
   put($('rt0'),'0');
   put($('rt4'),String(Math.round(sc*f)));
@@ -574,7 +585,7 @@ function seg(id,key,cast){
 }
 function paintSeg(){
   [['seg-units','units'],['seg-wake','wake'],['seg-bg','bg'],['seg-rate','rate'],
-   ['seg-day','day'],['seg-track','track'],['seg-air','air'],['seg-sens','sens']]
+   ['seg-day','day'],['seg-sport','sport'],['seg-air','air'],['seg-sens','sens']]
   .forEach(function(p){
     $(p[0]).querySelectorAll('button').forEach(function(b){ b.classList.toggle('sel',String(cfg[p[1]])===b.dataset.v); });
   });
@@ -601,7 +612,9 @@ function blank(){ return {
   pauseAt:0,        // wall-clock ms the current pause began (0 = not paused)
   gapMs:0,          // time the app spent killed/frozen mid-ride, counted but not moving
   movingMs:0, totalMs:0, dist:0, max:0,
-  speed:0, pts:[], jumps:[], bestAir:0, lastAir:0, last:null, fixes:0, endedAt:0 }; }
+  speed:0, pts:[], jumps:[], bestAir:0, lastAir:0, last:null, fixes:0, endedAt:0,
+  // vertical: totals in metres, plus the filter and lift-counter state
+  asc:0, dsc:0, altS:null, altA:null, climb:0, down:0, counted:false, lifts:0 }; }
 var ride = blank();
 var geoId=null, tickId=null, wl=null, eco=0, flashT=0;
 
@@ -622,7 +635,9 @@ function headerOf(){
     movingMs:ride.movingMs, totalMs:ride.totalMs,
     dist:ride.dist, max:ride.max, fixes:ride.fixes,
     jumps:ride.jumps, bestAir:ride.bestAir, lastAir:ride.lastAir,
-    last:ride.last, ptSeq:ptSeq, stamp:Date.now() };
+    last:ride.last, ptSeq:ptSeq, stamp:Date.now(),
+    asc:ride.asc, dsc:ride.dsc, altS:ride.altS, altA:ride.altA,
+    climb:ride.climb, down:ride.down, counted:ride.counted, lifts:ride.lifts };
 }
 
 function flushPts(){
@@ -707,6 +722,39 @@ function gps(acc){
   if(acc===null){ d.className='dot bad'; put(t,'No fix'); return; }
   d.className='dot '+(acc<=10?'good':acc<=25?'ok':'bad'); put(t,Math.round(acc)+' m');
 }
+/* ---------------- vertical ----------------
+   GPS altitude wanders 5–15 m even standing still. Summing every wiggle would have a
+   parked bike "climb" hundreds of metres, so:
+     1. drop readings the phone itself rates as poor (altitudeAccuracy),
+     2. smooth what's left,
+     3. only bank a change once it clears VSTEP from the last banked height.
+   Same idea Strava and Slopes use on phones without a barometer. No extra battery:
+   altitude already arrives with every speed reading.
+
+   Lift / climb counter: a sustained climb of LIFT_MIN counts once. It re-arms only
+   after a descent of LIFT_RESET, so a lift with a dip in the middle counts as one. */
+var VSTEP=6, VALPHA=0.2, VACC_MAX=25, LIFT_MIN=40, LIFT_RESET=25;
+function vertical(c){
+  var a=c.altitude;
+  if(a==null || isNaN(a)) return;
+  if(c.altitudeAccuracy!=null && c.altitudeAccuracy>VACC_MAX) return;
+  ride.altS = ride.altS==null ? a : ride.altS + (a-ride.altS)*VALPHA;
+  if(ride.altA==null){ ride.altA=ride.altS; return; }
+  var d=ride.altS-ride.altA;
+  if(d>=VSTEP){
+    ride.asc+=d; ride.altA=ride.altS;
+    ride.climb+=d; ride.down=0;
+    if(!ride.counted && ride.climb>=LIFT_MIN){ ride.lifts++; ride.counted=true; }
+  }else if(d<=-VSTEP){
+    ride.dsc-=d; ride.altA=ride.altS;
+    ride.down-=d;
+    if(ride.down>=LIFT_RESET){ ride.climb=0; ride.counted=false; }
+  }
+}
+function vertShown(){ return isSki()?ride.dsc:ride.asc; }
+// test harness hook — only exists when the page is opened with ?test=1
+if(/[?&]test=1\b/.test(location.search)) window.__si=function(code){ return eval(code); };
+
 function onFix(p){
   warn(null);
   var c=p.coords; gps(c.accuracy);
@@ -730,6 +778,7 @@ function onFix(p){
     if(d>=3 && dt2>0 && d/dt2*3.6<160) ride.dist+=d;
   }
   if(usable || !ride.last) ride.last=here;
+  if(usable) vertical(c);
   if(Number(cfg.track) && usable){
     var row=[+here.lat.toFixed(6),+here.lon.toFixed(6),Math.round(now/1000),Math.round(ride.speed*10)/10];
     ride.pts.push(row);
@@ -766,13 +815,68 @@ var COAST_MS = 70;      // a landing spike has to hold this long to be a landing
 var MAX_AIR  = 3000;    // longer than this is not a mountain bike jump
 var REFRACT  = 300;     // ignore the landing rebound
 var STALL_MS = 250;     // a bigger gap than this means the sensor stream broke
+/* v44 — jumps were being cut short at about 0.23 s.
+   In the air, rider and bike fall together, but the rider is still pushing and pulling
+   on the bars: levelling out, tucking, absorbing. The phone feels that as a force. The
+   old landing test was only "above 0.6 g for 70 ms", which a mid-air bar pull can pass,
+   so the jump ended early and the real landing was ignored.
+   Two changes:
+     1. a landing must spike to at least LAND_MIN (about 1.1 g) — real landings are
+        well above that, body English rarely is;
+     2. a landing is only provisional for MERGE_MS. If the phone drops back into free
+        fall in that window, it was mid-air after all and the flight carries on. */
+var LAND_MIN = 11;      // m/s2
+var MERGE_MS = 350;
+/* Safety net for both changes: in the air, the phone reads near zero. If it reads a
+   normal riding load for SOFT_MS straight, the bike is on the ground — whether the
+   landing was too smooth to spike past LAND_MIN, or a landing got merged by mistake.
+   The jump ends where that ground load began (or at the merged landing, if earlier). */
+var SOFT_MS = 250;
 
 var motionOn=false;
-var air = { state:'ground', armStart:0, pendAt:0, minM:99, tookOff:0, lastEnd:0, lastT:0 };
+var air = { state:'ground', armStart:0, pendAt:0, minM:99, tookOff:0, lastEnd:0, lastT:0,
+            landAt:0, landSeen:0, lowAt:0, gndAt:0, prevLand:0 };
+/* Air traces: the last few seconds of accelerometer magnitude, kept in a small ring.
+   When a jump is logged or rejected, the window around it is saved so the detector
+   can be tuned against real jumps instead of guesses. Setup → Air test → Save traces. */
+var TR_N=600, trT=new Float64Array(TR_N), trM=new Float32Array(TR_N), trI=0, trLen=0;
+var airTraces=[];
 var airDiag = [];       // ring buffer for the Air test panel
 var liveM = 0;
 
-function resetAir(){ air.state='ground'; air.armStart=0; air.pendAt=0; air.minM=99; air.lastT=0; }
+function resetAir(){ air.state='ground'; air.armStart=0; air.pendAt=0; air.minM=99; air.lastT=0;
+  air.landAt=0; air.landSeen=0; air.lowAt=0; air.gndAt=0; air.prevLand=0; }
+
+function snapTrace(verdict,dur,t){
+  try{
+    var from=air.armStart-600, out=[], n=Math.min(trLen,TR_N);
+    for(var k=n;k>0;k--){
+      var i=(trI-k+TR_N)%TR_N;
+      if(trT[i]>=from) out.push([Math.round(trT[i]-air.armStart), Math.round(trM[i]*10)/10]);
+    }
+    airTraces.unshift({ at:new Date().toISOString(), verdict:verdict, dur:Math.round(dur||0),
+      sens:cfg.sens, th:SENS[cfg.sens].th, landMin:LAND_MIN, v:APP_VERSION, m:out });
+    if(airTraces.length>12) airTraces.pop();
+    try{ localStorage.setItem('si-airtrace', JSON.stringify(airTraces)); }catch(e){}
+  }catch(e){}
+}
+
+/* Close out a provisional landing: validate it and log or reject. */
+function settleLanding(t){
+  // A merge followed almost at once by another landing was the suspension rebounding,
+  // not a second float: the first landing was the real one.
+  if(air.prevLand && air.landAt - air.prevLand < 250) air.landAt = air.prevLand;
+  var dur = air.landAt - air.armStart, reason=null, freefall=SENS[cfg.sens].th*0.8;
+  air.lastEnd = t;
+  if(dur < cfg.minair)          reason='under '+cfg.minair+'ms';
+  else if(dur > MAX_AIR)        reason='over '+(MAX_AIR/1000)+'s';
+  else if(air.minM > freefall)  reason='never reached free fall';
+  if(reason){ diag('rejected',dur,reason); snapTrace('rejected',dur,t); resetAir(); return; }
+  logJump(dur, air.tookOff);
+  diag('logged',dur,'');
+  snapTrace('logged',dur,t);
+  resetAir();
+}
 
 function startMotion(){
   if(motionOn || !Number(cfg.air)) return;
@@ -802,17 +906,23 @@ function onMotion(e){
   var pn=performance.now(), t=e.timeStamp;
   if(!(typeof t==='number' && isFinite(t) && Math.abs(t-pn)<10000)) t=pn;
 
-  var th=SENS[cfg.sens].th, thHigh=th+SENS_HI, freefall=th*0.8;
+  var th=SENS[cfg.sens].th, thHigh=Math.max(th+SENS_HI, LAND_MIN), freefall=th*0.8;
+  trT[trI]=t; trM[trI]=m; trI=(trI+1)%TR_N; if(trLen<TR_N) trLen++;
 
   // A break in the stream means the app was frozen, backgrounded, or the sensor
   // stalled. Whatever was in flight cannot be measured, so throw it away.
   if(air.lastT && (t-air.lastT) > STALL_MS){
-    if(air.state!=='ground'){ diag('dropped',0,'sensor gap'); resetAir(); }
+    if(air.state==='landed'){ settleLanding(air.landSeen); }
+    else if(air.state!=='ground'){ diag('dropped',0,'sensor gap'); resetAir(); }
     air.lastT=t; return;
   }
   air.lastT=t;
 
-  if(ride.status!=='running'){ if(air.state!=='ground') resetAir(); return; }
+  if(ride.status!=='running'){
+    if(air.state==='landed') settleLanding(t);
+    else if(air.state!=='ground') resetAir();
+    return;
+  }
 
   switch(air.state){
 
@@ -830,24 +940,40 @@ function onMotion(e){
 
     case 'air':
       if(m<air.minM) air.minM=m;
-      if(t-air.armStart>MAX_AIR){ diag('dropped',t-air.armStart,'over '+(MAX_AIR/1000)+'s'); resetAir(); return; }
-      if(m>thHigh){ air.state='pending'; air.pendAt=t; }
+      if(t-air.armStart>MAX_AIR){
+        if(air.prevLand){ air.landAt=air.prevLand; settleLanding(t); return; }
+        diag('dropped',t-air.armStart,'over '+(MAX_AIR/1000)+'s'); resetAir(); return;
+      }
+      if(m>thHigh){ air.state='pending'; air.pendAt=t; air.gndAt=0; return; }
+      if(m>=th){
+        if(!air.gndAt) air.gndAt=t;
+        if(t-air.gndAt>=SOFT_MS){                       // riding load, held: we're down
+          air.landAt = air.prevLand || air.gndAt;
+          if(!air.prevLand) diag('soft',air.landAt-air.armStart,'soft landing');
+          settleLanding(t); return;
+        }
+      }else air.gndAt=0;
       return;
 
     case 'pending':
       // Dropped straight back to free fall: that spike was mid-flight, not a landing.
       if(m<th){ air.state='air'; return; }
       if(t-air.pendAt < COAST_MS) return;               // not held long enough yet
-      var dur = air.pendAt - air.armStart;
-      air.lastEnd = t;
-      var reason = null;
-      if(dur < cfg.minair)                 reason='under '+cfg.minair+'ms';
-      else if(dur > MAX_AIR)               reason='over '+(MAX_AIR/1000)+'s';
-      else if(air.minM > freefall)         reason='never reached free fall';
-      if(reason){ diag('rejected',dur,reason); resetAir(); return; }
-      logJump(dur, air.tookOff);
-      diag('logged',dur,'');
-      resetAir();
+      // provisional: wait out MERGE_MS in case this was a mid-air bar pull
+      air.state='landed'; air.landAt=air.pendAt; air.landSeen=t; air.lowAt=0;
+      return;
+
+    case 'landed':
+      if(m<freefall){
+        if(!air.lowAt) air.lowAt=t;
+        if(t-air.lowAt>=ENTER_MS){                     // back in free fall: still flying
+          diag('merged',air.landAt-air.armStart,'mid-air bump');
+          if(!air.prevLand) air.prevLand=air.landAt;      // fallback if no clean landing follows
+          air.state='air'; air.landAt=0; air.lowAt=0; air.gndAt=0;
+          return;
+        }
+      }else air.lowAt=0;
+      if(t-air.landSeen>=MERGE_MS) settleLanding(t);
       return;
   }
 }
@@ -875,7 +1001,7 @@ function paintAir(){
   put($('airk'), live?'Air':'Last air');
   put($('airv'), ride.lastAir?ride.lastAir.toFixed(2)+'s':'—');
   put($('airsub'), ride.jumps.length
-    ? ride.jumps.length+(ride.jumps.length===1?' air':' airs')+' · best '+ride.bestAir.toFixed(2)+'s'
+    ? ride.jumps.length+(ride.jumps.length===1?' air':' airs')+'\nbest '+ride.bestAir.toFixed(2)+'s'   // two lines at the bigger size
     : '0 airs');
 }
 
@@ -932,16 +1058,18 @@ function banner(){
   else b.textContent='';
 }
 function render(force){
-  var sp=(ride.speed*U.spd).toFixed(1);
+  // whole numbers only — a decimal place on a bouncing GPS reading was noise
+  var sp=String(Math.round(ride.speed*U.spd));
   put($('speed'),sp);
-  $('speed').classList.toggle('wide', sp.length>4);
+  $('speed').classList.toggle('wide', sp.length>2);
   paintSegs();
-  $('peak').style.bottom=(Math.min(1,ride.max/cfg.scale)*100).toFixed(1)+'%';
+  $('peak').style.left=(Math.min(1,ride.max/cfg.scale)*100).toFixed(1)+'%';
   put($('time'),hms(ride.movingMs));
   put($('dist'),(ride.dist/1000*U.spd).toFixed(2));
   var hrs=ride.movingMs/3600000;
   put($('avg'),(hrs>0?(ride.dist/1000*U.spd)/hrs:0).toFixed(1));
-  put($('max'),(ride.max*U.spd).toFixed(1));
+  put($('max'),String(Math.round(ride.max*U.spd)));
+  put($('vert'),String(Math.round(vertShown()*U.vert)));
   paintClock();
   var go=$('btn-go');
   put(go, ride.status==='running'?'Pause':ride.status==='paused'?'Resume':'Start ride');
@@ -1052,6 +1180,7 @@ async function askMotion(){
 async function doPause(quiet){
   if(ride.status!=='running') return;
   ride.status='paused'; ride.pauseAt=Date.now();
+  ride.altS=null; ride.altA=null;   // don't count height gained or lost while paused
   stopGeo(); stopMotion(); releaseScreen(); keepaliveOff();
   clearInterval(tickId); tickId=null; ride.speed=0;
   await journal(true); render(true); banner();
@@ -1095,10 +1224,13 @@ async function finishRide(){
     name:'', started:ride.started, movingMs:ride.movingMs, totalMs:ride.totalMs,
     distM:ride.dist, max:ride.max,
     avg:(ride.movingMs>0 ? (ride.dist/1000)/(ride.movingMs/3600000) : 0),
-    airs:ride.jumps.length, bestAir:ride.bestAir
+    airs:ride.jumps.length, bestAir:ride.bestAir,
+    asc:Math.round(ride.asc), dsc:Math.round(ride.dsc), lifts:ride.lifts, sport:cfg.sport
   }, ride.pts, ride.jumps, false);
 }
-holdButton('btn-stop','Keep holding',700,finishRide);
+/* 500ms for Finish — long enough that a bump cannot end a ride, short enough not to
+   nag at the end of a run. Discard stays at 800ms: that one destroys data. */
+holdButton('btn-stop','Keep holding',500,finishRide);
 holdButton('btn-discard','Keep holding',800,async function(){
   var id=rideId();
   await clearActive(); await dropPts(id);
@@ -1112,7 +1244,8 @@ $('btn-save').addEventListener('click',async function(){
   var sum={ id:id, name:($('ride-name').value||'Ride').slice(0,60), started:ride.started,
     movingMs:ride.movingMs, totalMs:ride.totalMs, distM:Math.round(ride.dist),
     max:+ride.max.toFixed(1), avg:+(hrs>0?(ride.dist/1000)/hrs:0).toFixed(1),
-    pts:ride.pts.length, airs:ride.jumps.length, bestAir:ride.bestAir };
+    pts:ride.pts.length, airs:ride.jumps.length, bestAir:ride.bestAir,
+    asc:Math.round(ride.asc), dsc:Math.round(ride.dsc), lifts:ride.lifts, sport:cfg.sport };
   var list=(await S.get('rm-rides'))||[];
   list.unshift(sum); await S.set('rm-rides',list);
   // points go to IndexedDB (room for thousands of rides), summaries stay in localStorage
@@ -1154,7 +1287,7 @@ function guardControls(){
   guardT=setTimeout(function(){ document.body.classList.remove('guard'); },600);
 }
 function show(id){
-  ['s-ride','s-list','s-setup','s-map','s-sum']
+  ['s-ride','s-list','s-setup','s-sum']
     .forEach(function(s){ $(s).classList.toggle('on',s===id); });
   guardControls();
 }
@@ -1162,7 +1295,6 @@ $('btn-rides').addEventListener('click',function(){ show('s-list'); paintList();
 $('btn-set').addEventListener('click',function(){ show('s-setup'); });
 $('btn-back1').addEventListener('click',function(){ show('s-ride'); });
 $('btn-back2').addEventListener('click',function(){ show('s-ride'); });
-$('btn-back3').addEventListener('click',function(){ show('s-ride'); });
 /* Focus mode removed in v33: with the split layout it hid half the screen and left
    the other half empty. The layout is already pared down to what matters. */
 
@@ -1187,8 +1319,6 @@ async function paintList(){
       '</div><div class="acts">'+
         '<button class="chip" data-a="sum">Summary</button>'+
         (r.airs?'<button class="chip" data-a="airs">Jump list</button>':'')+
-        (r.pts?'<button class="chip" data-a="map">Map</button>':'')+
-        (r.pts?'<button class="chip" data-a="gpx">GPX</button>':'')+
         '<button class="chip" data-a="csv">CSV</button>'+
         '<button class="chip" data-a="del">Delete</button>'+
       '</div></div>';
@@ -1223,9 +1353,7 @@ $('ridelist').addEventListener('click',async function(e){
   }
   var pts=await ptsFor(id), js2=(await S.get('rm-jmp-'+id))||[];
   var base=r.name.replace(/\W+/g,'-')||'ride';
-  if(a==='map'){ openMap(pts,js2,r.name); return; }
   if(a==='sum'){ openSummary(r,pts,js2,true); return; }
-  if(a==='gpx') dl(base+'.gpx',gpx(r,pts),'application/gpx+xml');
   if(a==='csv') dl(base+'.csv',csv(r,pts,js2),'text/csv');
 });
 
@@ -1235,305 +1363,11 @@ async function ptsFor(id){
   return (await S.get('rm-trk-'+id))||[];
 }
 
-/* ================= BREADCRUMB MAP =================
-   Deliberately not MapLibre. A vector-tile engine is ~800 KB of JS, needs a live
-   connection to render anything, and its tile fetches are what the service worker
-   used to break. This is a canvas, a Mercator projection and an optional raster
-   backdrop: it draws instantly, it draws with no signal at all, and if the tiles
-   never arrive you still get your line. */
-var MAP = { pts:[], jumps:[], z:14, cx:0, cy:0, base:1, tiles:{}, raf:0, title:'Track' };
-var TILE_LIGHT='https://a.basemaps.cartocdn.com/light_all/';
-var TILE_DARK ='https://a.basemaps.cartocdn.com/dark_all/';
-
-function wx(lon,z){ return (lon+180)/360*256*Math.pow(2,z); }
-function wy(lat,z){
-  var s=Math.sin(lat*Math.PI/180);
-  return (0.5 - Math.log((1+s)/(1-s))/(4*Math.PI))*256*Math.pow(2,z);
-}
-/* A gap is any pair of consecutive fixes more than GAP_S apart. Normal spacing is
-   about a second; a screen-off stretch or an app kill leaves a hole. Detected from
-   the timestamps themselves, so it catches every cause the same way. */
-var GAP_S = 25;
-function isGap(a,b){ return (b[2]-a[2]) > GAP_S; }
-function gapStats(P){
-  var n=0, secs=0;
-  for(var i=1;i<P.length;i++) if(isGap(P[i-1],P[i])){ n++; secs += P[i][2]-P[i-1][2]; }
-  return {count:n, secs:secs};
-}
-
-function speedColor(v){
-  var t=Math.max(0,Math.min(1, v/(cfg.scale||60)));
-  var stops=[[0,59,110,165],[.34,79,209,165],[.67,255,176,32],[1,255,90,71]];
-  for(var i=1;i<stops.length;i++){
-    if(t<=stops[i][0]){
-      var a=stops[i-1],b=stops[i],f=(t-a[0])/(b[0]-a[0]||1);
-      return 'rgb('+Math.round(a[1]+(b[1]-a[1])*f)+','+Math.round(a[2]+(b[2]-a[2])*f)+
-             ','+Math.round(a[3]+(b[3]-a[3])*f)+')';
-    }
-  }
-  return 'rgb(255,90,71)';
-}
-
-function fitTrack(){
-  var P=MAP.pts; if(!P.length) return;
-  var la0=90,la1=-90,lo0=180,lo1=-180;
-  for(var i=0;i<P.length;i++){
-    if(P[i][0]<la0)la0=P[i][0]; if(P[i][0]>la1)la1=P[i][0];
-    if(P[i][1]<lo0)lo0=P[i][1]; if(P[i][1]>lo1)lo1=P[i][1];
-  }
-  var cv=$('mapcv'), w=cv.clientWidth||360, hgt=cv.clientHeight||360;
-  var z=18;
-  while(z>2){
-    var dx=Math.abs(wx(lo1,z)-wx(lo0,z)), dy=Math.abs(wy(la0,z)-wy(la1,z));
-    if(dx<w*0.86 && dy<hgt*0.86) break;
-    z--;
-  }
-  MAP.z=z;
-  MAP.cx=(wx(lo0,z)+wx(lo1,z))/2;
-  MAP.cy=(wy(la0,z)+wy(la1,z))/2;
-  drawMap();
-}
-
-function tileAt(z,x,y){
-  var n=Math.pow(2,z);
-  if(y<0||y>=n) return null;
-  x=((x%n)+n)%n;
-  var k=z+'/'+x+'/'+y;
-  if(MAP.tiles[k]!==undefined) return MAP.tiles[k];
-  var img=new Image(); img.crossOrigin='anonymous';
-  MAP.tiles[k]=null;
-  img.onload =function(){ MAP.tiles[k]=img; queueDraw(); };
-  img.onerror=function(){ MAP.tiles[k]=false; };   // offline: stays blank, line still draws
-  img.src=(Number(cfg.day)?TILE_LIGHT:TILE_DARK)+z+'/'+x+'/'+y+'.png';
-  return null;
-}
-
-function queueDraw(){ if(MAP.raf) return; MAP.raf=requestAnimationFrame(function(){ MAP.raf=0; drawMap(); }); }
-
-function drawMap(){
-  var cv=$('mapcv'); if(!cv) return;
-  var dpr=Math.min(2,window.devicePixelRatio||1);
-  var w=cv.clientWidth, hgt=cv.clientHeight;
-  if(!w||!hgt) return;
-  if(cv.width!==Math.round(w*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(hgt*dpr); }
-  var g=cv.getContext('2d');
-  g.setTransform(dpr,0,0,dpr,0,0);
-  g.clearRect(0,0,w,hgt);
-  g.fillStyle=getComputedStyle(document.body).getPropertyValue('--graphite')||'#16181B';
-  g.fillRect(0,0,w,hgt);
-
-  var z=Math.round(MAP.z), scale=Math.pow(2,MAP.z-z);
-  var ox=w/2-MAP.cx, oy=hgt/2-MAP.cy;
-  function sxOf(lon){ return w/2+(wx(lon,MAP.z)-MAP.cx); }
-  function syOf(lat){ return hgt/2+(wy(lat,MAP.z)-MAP.cy); }
-
-  if(MAP.base){
-    var ts=256*scale;
-    var x0=Math.floor((0-ox)/ts), x1=Math.ceil((w-ox)/ts);
-    var y0=Math.floor((0-oy)/ts), y1=Math.ceil((hgt-oy)/ts);
-    g.globalAlpha=0.82;
-    for(var ty=y0;ty<=y1;ty++) for(var tx=x0;tx<=x1;tx++){
-      var img=tileAt(z,tx,ty);
-      if(img) g.drawImage(img, ox+tx*ts, oy+ty*ts, ts+0.6, ts+0.6);
-    }
-    g.globalAlpha=1;
-  }
-
-  var P=MAP.pts;
-  if(!P.length){
-    g.fillStyle='#C9CED3'; g.font='13px system-ui'; g.textAlign='center';
-    g.fillText('No track points for this ride', w/2, hgt/2);
-    return;
-  }
-
-  // the line, one coloured segment per fix; gaps drawn dashed and grey
-  g.lineCap='round'; g.lineJoin='round';
-  var px=null,py=null;
-  for(var i=0;i<P.length;i++){
-    var X=sxOf(P[i][1]), Y=syOf(P[i][0]);
-    if(px!==null){
-      if(isGap(P[i-1],P[i])){
-        g.setLineDash([7,6]); g.lineWidth=2.5; g.strokeStyle='rgba(201,206,211,.72)';
-      }else{
-        g.setLineDash([]);    g.lineWidth=4;   g.strokeStyle=speedColor(P[i][3]||0);
-      }
-      g.beginPath(); g.moveTo(px,py); g.lineTo(X,Y); g.stroke();
-    }
-    px=X; py=Y;
-  }
-  g.setLineDash([]);
-
-  // label each gap with how long the app was dark
-  var gi;
-  g.font='10px system-ui'; g.textAlign='center'; g.textBaseline='middle';
-  for(gi=1;gi<P.length;gi++){
-    if(!isGap(P[gi-1],P[gi])) continue;
-    var mx=(sxOf(P[gi-1][1])+sxOf(P[gi][1]))/2, my=(syOf(P[gi-1][0])+syOf(P[gi][0]))/2;
-    if(mx<-40||mx>w+40||my<-20||my>hgt+20) continue;
-    var secs=P[gi][2]-P[gi-1][2];
-    var lab=secs<90 ? Math.round(secs)+'s gap' : Math.round(secs/60)+' min gap';
-    var tw=g.measureText(lab).width+10;
-    g.fillStyle='rgba(8,9,10,.82)';
-    g.fillRect(mx-tw/2, my-8, tw, 16);
-    g.fillStyle='#C9CED3'; g.fillText(lab, mx, my);
-  }
-
-  // jumps: match each jump to the nearest fix in time
-  g.fillStyle='#FFB020'; g.strokeStyle='rgba(0,0,0,.55)'; g.lineWidth=1.5;
-  for(var j=0;j<MAP.jumps.length;j++){
-    var t=MAP.jumps[j][0], best=null, bd=1e12;
-    for(var q=0;q<P.length;q++){ var d=Math.abs(P[q][2]-t); if(d<bd){ bd=d; best=P[q]; } }
-    if(best && bd<20){
-      var JX=sxOf(best[1]), JY=syOf(best[0]);
-      g.beginPath(); g.arc(JX,JY,5.5,0,6.284); g.fill(); g.stroke();
-    }
-  }
-
-  // start and finish
-  function pin(pt,fill,label){
-    var X=sxOf(pt[1]), Y=syOf(pt[0]);
-    g.beginPath(); g.arc(X,Y,7,0,6.284); g.fillStyle=fill; g.fill();
-    g.strokeStyle='#08090A'; g.lineWidth=2; g.stroke();
-    g.fillStyle='#08090A'; g.font='bold 9px system-ui'; g.textAlign='center'; g.textBaseline='middle';
-    g.fillText(label,X,Y+0.5);
-  }
-  pin(P[0],'#4FD1A5','S');
-  if(P.length>1) pin(P[P.length-1],'#FF5A47','F');
-
-  if(MAP.base){
-    g.fillStyle='rgba(201,206,211,.55)'; g.font='9px system-ui'; g.textAlign='right'; g.textBaseline='bottom';
-    g.fillText('© OpenStreetMap · © CARTO', w-6, hgt-4);
-  }
-}
-
-function openMap(pts,jumps,title){
-  MAP.pts=pts||[]; MAP.jumps=jumps||[]; MAP.title=title||'Track';
-  $('map-title').textContent=MAP.title;
-  show('s-map');
-  requestAnimationFrame(function(){ fitTrack(); });
-}
-
 /* ================= POST-RIDE SUMMARY =================
    Everything a rider wants in the two minutes after they stop: where they went, how
    fast, where the airs landed, and what the gaps were. Doubles as the detail view for
    any saved ride, so the same screen serves both. */
 var SUM = { r:null, pts:[], jumps:[], saved:false };
-
-function drawThumb(){
-  var cv=$('thumbcv'); if(!cv) return;
-  var dpr=Math.min(2,window.devicePixelRatio||1);
-  var w=cv.clientWidth, hgt=cv.clientHeight; if(!w||!hgt) return;
-  cv.width=Math.round(w*dpr); cv.height=Math.round(hgt*dpr);
-  var g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
-  g.clearRect(0,0,w,hgt);
-  g.fillStyle=getComputedStyle(document.body).getPropertyValue('--graphite')||'#16181B';
-  g.fillRect(0,0,w,hgt);
-
-  var P=SUM.pts;
-  if(!P.length){
-    g.fillStyle='#C9CED3'; g.font='13px system-ui'; g.textAlign='center'; g.textBaseline='middle';
-    g.fillText('No track recorded', w/2, hgt/2); return;
-  }
-
-  // fit the track into the box with a margin, no tiles, no interaction
-  var la0=90,la1=-90,lo0=180,lo1=-180,i;
-  for(i=0;i<P.length;i++){
-    if(P[i][0]<la0)la0=P[i][0]; if(P[i][0]>la1)la1=P[i][0];
-    if(P[i][1]<lo0)lo0=P[i][1]; if(P[i][1]>lo1)lo1=P[i][1];
-  }
-  var Z=16, pad=16;
-  var spanX=Math.abs(wx(lo1,Z)-wx(lo0,Z))||1, spanY=Math.abs(wy(la0,Z)-wy(la1,Z))||1;
-  var k=Math.min((w-pad*2)/spanX,(hgt-pad*2)/spanY);
-  var cxw=(wx(lo0,Z)+wx(lo1,Z))/2, cyw=(wy(la0,Z)+wy(la1,Z))/2;
-  function TX(lon){ return w/2+(wx(lon,Z)-cxw)*k; }
-  function TY(lat){ return hgt/2+(wy(lat,Z)-cyw)*k; }
-
-  g.lineCap='round'; g.lineJoin='round';
-  var px=null,py=null;
-  for(i=0;i<P.length;i++){
-    var X=TX(P[i][1]), Y=TY(P[i][0]);
-    if(px!==null){
-      if(isGap(P[i-1],P[i])){ g.setLineDash([6,5]); g.lineWidth=2; g.strokeStyle='rgba(201,206,211,.7)'; }
-      else { g.setLineDash([]); g.lineWidth=3.2; g.strokeStyle=speedColor(P[i][3]||0); }
-      g.beginPath(); g.moveTo(px,py); g.lineTo(X,Y); g.stroke();
-    }
-    px=X; py=Y;
-  }
-  g.setLineDash([]);
-
-  g.fillStyle='#FFB020'; g.strokeStyle='rgba(0,0,0,.55)'; g.lineWidth=1.2;
-  for(var j=0;j<SUM.jumps.length;j++){
-    var t=SUM.jumps[j][0], best=null, bd=1e12;
-    for(var q=0;q<P.length;q++){ var dd=Math.abs(P[q][2]-t); if(dd<bd){ bd=dd; best=P[q]; } }
-    if(best && bd<20){ g.beginPath(); g.arc(TX(best[1]),TY(best[0]),4,0,6.284); g.fill(); g.stroke(); }
-  }
-  function pin(pt,fill){
-    g.beginPath(); g.arc(TX(pt[1]),TY(pt[0]),5.5,0,6.284);
-    g.fillStyle=fill; g.fill(); g.strokeStyle='#08090A'; g.lineWidth=1.8; g.stroke();
-  }
-  pin(P[0],'#4FD1A5'); if(P.length>1) pin(P[P.length-1],'#FF5A47');
-}
-
-function drawSpeed(){
-  var cv=$('spdcv'); if(!cv) return;
-  var dpr=Math.min(2,window.devicePixelRatio||1);
-  var w=cv.clientWidth, hgt=cv.clientHeight; if(!w||!hgt) return;
-  cv.width=Math.round(w*dpr); cv.height=Math.round(hgt*dpr);
-  var g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
-  g.clearRect(0,0,w,hgt);
-
-  var P=SUM.pts;
-  if(P.length<2){
-    g.fillStyle='#C9CED3'; g.font='12px system-ui'; g.textAlign='center'; g.textBaseline='middle';
-    g.fillText('Not enough data', w/2, hgt/2); return;
-  }
-  var t0=P[0][2], t1=P[P.length-1][2], span=(t1-t0)||1;
-  var peak=0,i;
-  for(i=0;i<P.length;i++) if((P[i][3]||0)>peak) peak=P[i][3];
-  var top=Math.max(peak*1.12, 5);
-
-  function SX(t){ return (t-t0)/span*w; }
-  function SY(v){ return hgt - (v/top)*(hgt-8) - 4; }
-
-  // gridlines at quarters of peak
-  g.strokeStyle='rgba(201,206,211,.14)'; g.lineWidth=1;
-  for(i=1;i<4;i++){ var yy=hgt-(i/4)*(hgt-8)-4;
-    g.beginPath(); g.moveTo(0,yy); g.lineTo(w,yy); g.stroke(); }
-
-  // filled area under the trace
-  g.beginPath(); g.moveTo(SX(P[0][2]), hgt);
-  for(i=0;i<P.length;i++) g.lineTo(SX(P[i][2]), SY(P[i][3]||0));
-  g.lineTo(SX(P[P.length-1][2]), hgt); g.closePath();
-  var grad=g.createLinearGradient(0,0,0,hgt);
-  grad.addColorStop(0,'rgba(255,176,32,.38)'); grad.addColorStop(1,'rgba(255,176,32,.02)');
-  g.fillStyle=grad; g.fill();
-
-  // the trace, coloured by speed, broken at gaps
-  g.lineWidth=2; g.lineCap='round';
-  for(i=1;i<P.length;i++){
-    if(isGap(P[i-1],P[i])) continue;
-    g.strokeStyle=speedColor(P[i][3]||0);
-    g.beginPath(); g.moveTo(SX(P[i-1][2]),SY(P[i-1][3]||0));
-    g.lineTo(SX(P[i][2]),SY(P[i][3]||0)); g.stroke();
-  }
-
-  // peak marker
-  for(i=0;i<P.length;i++) if((P[i][3]||0)===peak){
-    var mx=SX(P[i][2]), my=SY(peak);
-    g.fillStyle='#FF5A47'; g.beginPath(); g.arc(mx,my,3.5,0,6.284); g.fill();
-    g.fillStyle='#EDEBE6'; g.font='10px system-ui'; g.textBaseline='bottom';
-    g.textAlign = mx > w-44 ? 'right' : 'left';
-    g.fillText((peak*U.spd).toFixed(1)+' '+U.spdLab, mx + (mx>w-44?-6:6), my-3);
-    break;
-  }
-
-  // amber ticks where airs happened
-  g.strokeStyle='rgba(255,176,32,.6)'; g.lineWidth=1.5;
-  for(var j=0;j<SUM.jumps.length;j++){
-    var jt=SUM.jumps[j][0]; if(jt<t0||jt>t1) continue;
-    var jx=SX(jt); g.beginPath(); g.moveTo(jx,hgt); g.lineTo(jx,hgt-10); g.stroke();
-  }
-}
 
 function openSummary(r, pts, jumps, saved){
   SUM.r=r; SUM.pts=pts||[]; SUM.jumps=jumps||[]; SUM.saved=!!saved;
@@ -1563,6 +1397,14 @@ function openSummary(r, pts, jumps, saved){
     ['Best air', r.bestAir?r.bestAir.toFixed(2)+' s':'—', ''],
     ['Total airtime', (jumpTotal(SUM.jumps)).toFixed(2)+' s', '']
   ];
+  // vertical: rides saved before v43 have none, so they show nothing rather than 0
+  var ski = (r.sport||cfg.sport)==='ski', vf=function(m){ return Math.round(m*U.vert).toLocaleString()+' '+U.vertLab; };
+  if(r.asc!=null){
+    if(ski) cells.splice(4,0,['Vertical ↓', vf(r.dsc||0), ''],['Lifts', String(r.lifts||0), '']);
+    else    cells.splice(4,0,['Climb ↑', vf(r.asc||0), '']);
+  }
+  // two-column grid: an odd count would leave a hole, so the last cell spans
+  if((cells.length-1)%2) cells[cells.length-1][2]='w';
   $('sum-big').innerHTML = cells.map(function(c){
     return '<div class="cell '+c[2]+'"><div class="k">'+c[0]+'</div><div class="v">'+c[1]+'</div></div>';
   }).join('');
@@ -1577,119 +1419,26 @@ function openSummary(r, pts, jumps, saved){
            '<b>'+s.toFixed(2)+'s</b><em>'+(j[2]*U.spd).toFixed(1)+' '+U.spdLab+' in</em></div>';
   }).join('') : '';
 
-  var gs=gapStats(SUM.pts);
-  var notes=[];
-  if(!SUM.pts.length) notes.push('No GPS track was recorded for this ride.');
-  if(gs.count) notes.push(gs.count+(gs.count===1?' gap':' gaps')+' in the track totalling '+
-    (gs.secs<90?Math.round(gs.secs)+' seconds':Math.round(gs.secs/60)+' minutes')+
-    ', shown as a dashed line. That is time the screen was off or the app was closed — '+
-    'distance across a gap is measured straight line, so it reads slightly short.');
-  $('sum-note').textContent = notes.join(' ');
-
-  $('sect-speed').hidden = SUM.pts.length<2;
-  $('spd-l').textContent='Start'; $('spd-r').textContent='Finish';
+  $('sum-note').textContent = '';
 
   show('s-sum');
-  requestAnimationFrame(function(){ drawThumb(); drawSpeed(); });
 }
 function jumpTotal(js){ var t=0; for(var i=0;i<js.length;i++) t+=js[i][1]; return t/1000; }
 
-$('sum-thumb').addEventListener('click',function(){
-  if(!SUM.pts.length){ toast('No track for this ride'); return; }
-  openMap(SUM.pts, SUM.jumps, SUM.r && SUM.r.name ? SUM.r.name : 'This ride');
-});
 $('btn-sum-close').addEventListener('click',function(){ show('s-list'); paintList(); });
 window.addEventListener('resize',function(){
-  if($('s-sum').classList.contains('on')){ drawThumb(); drawSpeed(); }
+  if($('s-ride').classList.contains('on')) drawRail();   // wedge heights are in px
 });
 
-/* pan + pinch */
-(function(){
-  var cv=$('mapcv'), pts={}, lastD=0, lastMid=null;
-  function pos(e){ return {x:e.clientX,y:e.clientY}; }
-  cv.addEventListener('pointerdown',function(e){
-    cv.setPointerCapture(e.pointerId); pts[e.pointerId]=pos(e); lastD=0; lastMid=null;
-    $('maphint').style.opacity=0;
-  });
-  cv.addEventListener('pointermove',function(e){
-    if(!pts[e.pointerId]) return;
-    var ids=Object.keys(pts), now=pos(e);
-    if(ids.length===1){
-      MAP.cx-= now.x-pts[e.pointerId].x;
-      MAP.cy-= now.y-pts[e.pointerId].y;
-      pts[e.pointerId]=now; queueDraw();
-    }else if(ids.length>=2){
-      pts[e.pointerId]=now;
-      var a=pts[ids[0]], b=pts[ids[1]];
-      var d=Math.hypot(a.x-b.x,a.y-b.y), mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
-      if(lastD){
-        var f=d/lastD, nz=Math.max(2,Math.min(19,MAP.z+Math.log2(f)));
-        var k=Math.pow(2,nz-MAP.z);
-        MAP.cx*=k; MAP.cy*=k; MAP.z=nz;
-        if(lastMid){ MAP.cx-=(mid.x-lastMid.x); MAP.cy-=(mid.y-lastMid.y); }
-        queueDraw();
-      }
-      lastD=d; lastMid=mid;
-    }
-  });
-  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
-    cv.addEventListener(ev,function(e){ delete pts[e.pointerId]; lastD=0; lastMid=null; });
-  });
-  window.addEventListener('resize',function(){ if($('s-map').classList.contains('on')) queueDraw(); });
-})();
-
-$('map-fit').addEventListener('click',fitTrack);
-$('map-base').addEventListener('click',function(){
-  MAP.base=MAP.base?0:1; this.classList.toggle('sel',!!MAP.base); drawMap();
-});
-$('map-gpx').addEventListener('click',function(){
-  if(!MAP.pts.length){ toast('No track points yet'); return; }
-  var r={name:MAP.title,started:MAP.pts[0][2]*1000};
-  dl((MAP.title.replace(/\W+/g,'-')||'track')+'.gpx',gpx(r,MAP.pts),'application/gpx+xml');
-});
-
-/* swipe right-to-left from the right edge of the ride screen opens the live track */
-(function(){
-  var sx=0,sy=0,t0=0,on=false;
-  function start(e){
-    if(!$('s-ride').classList.contains('on')) return;
-    if(document.body.classList.contains('locked')) return;
-    var t=e.touches?e.touches[0]:e;
-    sx=t.clientX; sy=t.clientY; t0=Date.now(); on=true;
-  }
-  function end(e){
-    if(!on) return; on=false;
-    var t=(e.changedTouches?e.changedTouches[0]:e);
-    var dx=t.clientX-sx, dy=t.clientY-sy;
-    if(Date.now()-t0<600 && dx<-48 && Math.abs(dy)<60) liveMap();
-  }
-  var ed=$('edge-r');
-  ed.addEventListener('touchstart',start,{passive:true});
-  ed.addEventListener('touchend',end,{passive:true});
-  ed.addEventListener('pointerdown',start);
-  ed.addEventListener('pointerup',end);
-})();
-
-async function liveMap(){
-  var pts=ride.pts;
-  if(!pts.length && ride.started){ pts = await readAllPts(rideId()); }
-  if(!pts.length){ toast('No track yet — start a ride first'); return; }
-  openMap(pts, ride.jumps, ride.status==='idle' ? 'Track' : 'This ride');
-}
-
-function gpx(r,pts){
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Rail" xmlns="http://www.topografix.com/GPX/1/1">\n'+
-  '<metadata><name>'+esc(r.name)+'</name><time>'+new Date(r.started).toISOString()+'</time></metadata>\n'+
-  '<trk><name>'+esc(r.name)+'</name><trkseg>\n'+
-  pts.map(function(p){ return '<trkpt lat="'+p[0]+'" lon="'+p[1]+'"><time>'+new Date(p[2]*1000).toISOString()+'</time></trkpt>'; }).join('\n')+
-  '\n</trkseg></trk></gpx>';
-}
 function csv(r,pts,js){
   var s='# '+r.name+'\n# start,'+new Date(r.started).toISOString()+
     '\n# moving_s,'+Math.round(r.movingMs/1000)+'\n# distance_m,'+r.distM+
     '\n# peak_kmh,'+r.max+'\n# avg_kmh,'+r.avg+'\n# airs,'+(r.airs||0)+
-    '\n# best_air_s,'+(r.bestAir||0)+'\n\njump,airtime_s,takeoff_kmh,time\n';
+    '\n# best_air_s,'+(r.bestAir||0)+
+    (r.asc!=null ? '\n# sport,'+(r.sport||'bike')+'\n# ascent_m,'+r.asc+'\n# descent_m,'+r.dsc+'\n# lifts,'+(r.lifts||0) : '')+
+    '\n\njump,airtime_s,takeoff_kmh,time\n';
   s += js.map(function(j,i){ return (i+1)+','+(j[1]/1000).toFixed(2)+','+j[2]+','+new Date(j[0]*1000).toISOString(); }).join('\n');
+  if(!pts.length) return s;   // rides after v42 carry no track
   s += '\n\ntime,lat,lon,speed_kmh\n';
   s += pts.map(function(p){ return new Date(p[2]*1000).toISOString()+','+p[0]+','+p[1]+','+p[3]; }).join('\n');
   return s;
@@ -1784,6 +1533,12 @@ function paintDiag(){
            '<span style="flex:1;text-align:right">'+esc(d.x||tm)+'</span></div>';
   }).join('');
 }
+$('btn-airtrace').addEventListener('click',function(){
+  var t=airTraces;
+  if(!t.length){ try{ t=JSON.parse(localStorage.getItem('si-airtrace')||'[]'); }catch(e){ t=[]; } }
+  if(!t.length){ toast('No air traces yet — ride a few jumps first'); return; }
+  dl('send-it-air-traces.json', JSON.stringify({app:'Send It', version:APP_VERSION, traces:t}), 'application/json');
+});
 function paintAirTest(){
   var th=SENS[cfg.sens].th, full=14;
   var pct=Math.max(0,Math.min(100,liveM/full*100));
@@ -1792,7 +1547,7 @@ function paintAirTest(){
   $('g-mark').style.left=(th/full*100).toFixed(1)+'%';
   $('g-cap').textContent=liveM.toFixed(1)+' m/s²  ·  '+(liveM/9.81).toFixed(2)+' g';
   ['ground','arming','air','pending'].forEach(function(s){
-    $('st-'+s).classList.toggle('on', air.state===s);
+    $('st-'+s).classList.toggle('on', air.state===s || (s==='pending' && air.state==='landed'));
   });
 }
 $('btn-airtest').addEventListener('click',async function(){
@@ -1857,7 +1612,13 @@ $('sel-scale').addEventListener('change',function(){ cfg.scale=Number(this.value
 $('sel-acc').addEventListener('change',function(){ cfg.acc=Number(this.value); saveCfg(); afterCfg(); });
 $('sel-minair').addEventListener('change',function(){ cfg.minair=Number(this.value); saveCfg(); });
 seg('seg-units','units'); seg('seg-wake','wake',Number); seg('seg-bg','bg',Number);
-seg('seg-rate','rate'); seg('seg-day','day',Number); seg('seg-track','track',Number);
+seg('seg-rate','rate'); seg('seg-day','day',Number);
+/* Sport sets the bar scale too. Rail top speed can still be changed by hand after. */
+$('seg-sport').addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b) return;
+  cfg.sport=b.dataset.v; cfg.scale=SPORT[cfg.sport].scale;
+  paintSeg(); saveCfg(); afterCfg();
+});
 seg('seg-air','air',Number); seg('seg-sens','sens');
 
 /* ---------------- resume an interrupted ride ----------------
@@ -1882,6 +1643,9 @@ async function tryResume(){
   ride.jumps    = head.jumps||[];
   ride.bestAir  = head.bestAir||0;
   ride.lastAir  = head.lastAir||0;
+  ride.asc=head.asc||0; ride.dsc=head.dsc||0; ride.lifts=head.lifts||0;
+  ride.altS=head.altS!=null?head.altS:null; ride.altA=head.altA!=null?head.altA:null;
+  ride.climb=head.climb||0; ride.down=head.down||0; ride.counted=!!head.counted;
   ride.last     = head.last||null;
   ptSeq         = head.ptSeq||0;
   ride.pts      = await readAllPts('r'+head.started);
@@ -1921,13 +1685,14 @@ async function tryResume(){
 $('btn-resume').addEventListener('click',async function(){
   $('sheet-resume').classList.remove('on'); await doResume(); toast('Back on');
 });
-holdButton('btn-resume-fin','Keep holding',700,function(){
+holdButton('btn-resume-fin','Keep holding',500,function(){
   $('sheet-resume').classList.remove('on'); finishRide();
 });
 
 /* ---------------- boot ---------------- */
 (async function(){
   var saved=await S.get('rm-cfg'); if(saved) Object.assign(cfg,saved);
+  cfg.track=0;   // v42: no breadcrumb trail. Overrides anything saved by older builds.
   paintSeg(); afterCfg(); render(true); lockPortrait();
   paintVer();
   startClock();

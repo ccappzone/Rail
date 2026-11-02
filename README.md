@@ -1,6 +1,6 @@
 # Send It — Advance Your Ride
 
-Big-digit GPS speed, a segmented speed bar, **airtime per jump**, moving time and distance. Records each session and saves it to a ride list you can export as GPX, CSV or JSON.
+Big-digit GPS speed, a segmented speed bar, **airtime per jump**, moving time and distance. Records each session and saves it to a ride list you can export as CSV or JSON. No map and no GPS track storage — GPS is used only for live speed and distance.
 
 Files:
 
@@ -112,7 +112,7 @@ Biggest wins, in order:
 3. **Eco refresh rate** (Setup) polls GPS half as often. Roughly halves location power draw. Speed feels slightly laggier — good for a long trail ride, less good for a jump session where you're judging your run-in.
 4. **Pause between runs.** Pause releases the GPS watch, the accelerometer and the screen lock entirely. Pushing back up to the top with the app paused costs almost nothing — and it stops the walk up polluting your average speed.
 5. **Turn off jump detection** on rides where you don't care about airtime. The accelerometer runs around 60 Hz while recording. Small next to the screen and GPS, but not free.
-6. **Stats only** track logging skips storing GPS points. Small power saving, large storage saving, but you lose GPX export.
+6. **No track logging** (since v42). GPS points are never stored; only the ride totals and jumps are saved.
 7. **Turn off keep-screen-on** if you ride with the phone in a pocket. The screen is the expensive part; without it the app is nearly free.
 8. Airplane mode with location still enabled works fine and stops the cell radio hunting for towers on a remote trail. GPS is receive-only and doesn't need a data connection.
 
@@ -129,7 +129,7 @@ Rough expectation with screen on, dark theme, mid brightness, fast refresh: **3�
 The natural next steps, roughly in order of effort:
 
 1. **Lap / run splits** — one big button that marks the end of a run, so you get per-run speed and time instead of one session average. Most useful single addition for a jump line you're repeating.
-2. **Track map** on the ride detail screen — needs a map library and tiles, which is the first thing here that costs real battery and bandwidth. Keep it on the history screen only, never on the live screen.
+2. ~~Track map~~ — built in v30, removed in v42 by choice. Live speed matters; the trail map didn't.
 3. **Elevation and vertical descent** — GPS altitude is already available but discarded because it's noisy (±10 m). Needs heavy smoothing to be worth showing.
 4. **Landing force** — the landing spike is already measured, it just isn't recorded. Peak g per jump would tell you which landings you're casing.
 5. **Accounts and sync** — the point at which this needs a backend. Only worth it if friends want to compare sessions.
